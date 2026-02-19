@@ -109,12 +109,21 @@ function useContent<T>(table: string, fallback: T[]): { data: T[]; loading: bool
 
 function LoginForm() {
   const { login } = useAuth()
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    login(username, password)
+    setError("")
+    setLoading(true)
+
+    const err = await login(email, password)
+    if (err) {
+      setError(err)
+      setLoading(false)
+    }
   }
 
   return (
@@ -149,17 +158,18 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <label
-                htmlFor="login-username"
+                htmlFor="login-email"
                 className="text-xs uppercase tracking-widest text-white/50 font-sans"
               >
-                Username
+                Email
               </label>
               <input
-                id="login-username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Leave blank for testing"
+                id="login-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
                 className="h-11 w-full rounded-none border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
               />
             </div>
@@ -176,21 +186,32 @@ function LoginForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank for testing"
+                placeholder="Your password"
+                required
                 className="h-11 w-full rounded-none border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
               />
             </div>
 
+            {error && (
+              <p className="text-red-400 text-xs font-sans bg-red-400/5 border border-red-400/10 px-4 py-2">
+                {error}
+              </p>
+            )}
+
             <button
               type="submit"
-              className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-3.5 rounded-none hover:bg-white/90 transition-colors"
+              disabled={loading}
+              className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-3.5 rounded-none hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Sign In
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
 
           <p className="text-center text-xs text-white/30 font-sans mt-6">
-            Leave both fields blank and click Sign In to preview the dashboard.
+            Don&apos;t have an account?{" "}
+            <a href="/#pricing" className="text-white/60 hover:text-white underline transition-colors">
+              Get the Lifetime Vault
+            </a>
           </p>
         </div>
       </div>
@@ -245,7 +266,7 @@ function StatCard({
 /* ── Dashboard ── */
 
 function Dashboard() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const router = useRouter()
 
   const { data: courses } = useContent("courses", fallbackCourses)
@@ -266,7 +287,7 @@ function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-3">
-              Your Dashboard
+              {user?.name ? `Welcome, ${user.name}` : "Your Dashboard"}
             </p>
             <h1 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none">
               The Lifetime Vault

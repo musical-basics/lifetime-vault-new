@@ -56,6 +56,16 @@ create table if not exists tour_dates (
   created_at timestamptz default now()
 );
 
+-- Users (registered members)
+create table if not exists users (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  email text unique not null,
+  password_hash text not null,
+  stripe_session_id text,
+  created_at timestamptz default now()
+);
+
 -- ============================================================
 -- Row Level Security (RLS)
 -- Public read access, service-role-only write access
@@ -66,6 +76,7 @@ alter table sheet_music enable row level security;
 alter table bonus_material enable row level security;
 alter table bts_clips enable row level security;
 alter table tour_dates enable row level security;
+alter table users enable row level security;
 
 -- Public read policies
 create policy "Public read courses" on courses for select using (true);

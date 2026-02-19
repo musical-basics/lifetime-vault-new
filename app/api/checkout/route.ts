@@ -25,7 +25,7 @@ export async function POST(request: Request) {
                     quantity: 1,
                 },
             ],
-            success_url: `${origin}/login?checkout=success`,
+            success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}/#pricing`,
         })
 
