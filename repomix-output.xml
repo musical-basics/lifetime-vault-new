@@ -42,6 +42,19 @@ The content is organized as follows:
 
 <directory_structure>
 app/
+  admin/
+    page.tsx
+  api/
+    admin/
+      auth/
+        route.ts
+    checkout/
+      route.ts
+    content/
+      [table]/
+        route.ts
+    upload/
+      route.ts
   login/
     page.tsx
   members/
@@ -115,6 +128,7 @@ components/
   bonus-material-section.tsx
   concert-tour-section.tsx
   faq-section.tsx
+  footer.tsx
   hero-section.tsx
   letter-section.tsx
   members-only-gate.tsx
@@ -127,9 +141,12 @@ hooks/
   use-mobile.ts
   use-toast.ts
 lib/
+  supabase.ts
   utils.ts
 styles/
   globals.css
+supabase/
+  schema.sql
 .gitignore
 components.json
 next-env.d.ts
@@ -143,609 +160,796 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
-<file path="repomix.config.json">
-{
-    "output": {
-        "filePath": "repomix-output.xml",
-        "style": "xml"
-    },
-    "ignore": {
-        "customPatterns": [
-            "node_modules",
-            ".next",
-            "public/images",
-            "*.jpg",
-            "*.png",
-            "*.ico",
-            "*.svg",
-            "*.mp4",
-            "*.webm",
-            "pnpm-lock.yaml",
-            ".DS_Store",
-            "repomix-output.*"
-        ]
-    }
-}
-</file>
-
-<file path="app/login/page.tsx">
+<file path="app/admin/page.tsx">
 "use client"
 
-import { useState } from "react"
-import { useAuth } from "@/components/auth-provider"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { useState, useEffect, useCallback } from "react"
 import {
-  Play,
-  Download,
-  FileText,
-  Video,
-  Music,
-  Dumbbell,
-  Film,
-  MapPin,
-  Calendar,
-  BookOpen,
-  LogOut,
-  ChevronRight,
+    Plus,
+    Trash2,
+    Edit3,
+    Upload,
+    X,
+    Video,
+    Music,
+    Dumbbell,
+    Film,
+    MapPin,
+    LogOut,
+    Loader2,
 } from "lucide-react"
 
-/* ── Data ── */
+/* ── Types ── */
 
-const courses = [
-  {
-    title: "The Complete Piano Course",
-    lessons: "42 Lessons",
-    duration: "12+ Hours",
-    description:
-      "Master romantic repertoire with Lionel's flagship system covering technique, interpretation, and performance.",
-    progress: 68,
-    image: "/images/piano-hands-bw.jpg",
-  },
-  {
-    title: "Sight-Reading Accelerator",
-    lessons: "18 Lessons",
-    duration: "5 Hours",
-    description:
-      "Build fluent sight-reading skills from scratch with progressive exercises and real repertoire.",
-    progress: 25,
-    image: "/images/sheet-music-piano.jpg",
-  },
-  {
-    title: "Music Theory Foundations",
-    lessons: "24 Lessons",
-    duration: "7 Hours",
-    description:
-      "Understand harmony, chord progressions, and form. Essential knowledge for any serious pianist.",
-    progress: 0,
-    image: "/images/early-days.jpg",
-  },
-]
-
-const sheetMusic = [
-  { title: "Chopin - Ballade No. 1 in G Minor", pages: 14, difficulty: "Advanced" },
-  { title: "Debussy - Clair de Lune", pages: 6, difficulty: "Intermediate" },
-  { title: "Liszt - La Campanella", pages: 12, difficulty: "Advanced" },
-  { title: "Bach - Prelude in C Major", pages: 3, difficulty: "Beginner" },
-  { title: "Rachmaninoff - Prelude in C# Minor", pages: 8, difficulty: "Advanced" },
-  { title: "Satie - Gymnop\u00e9die No. 1", pages: 4, difficulty: "Beginner" },
-  { title: "Beethoven - Moonlight Sonata Mvt. 1", pages: 5, difficulty: "Intermediate" },
-  { title: "Lionel Yu - Original: Stillwater", pages: 6, difficulty: "Intermediate" },
-]
-
-const bonusMaterial = [
-  {
-    title: "Daily Warm-Up Routine",
-    type: "Exercise Set",
-    description: "A 15-minute daily routine covering scales, arpeggios, and finger independence drills.",
-  },
-  {
-    title: "Advanced Trill Technique",
-    type: "Video Breakdown",
-    description: "In-depth tutorial on achieving even, rapid trills across all fingers.",
-  },
-  {
-    title: "Pedalling Masterclass",
-    type: "Video Breakdown",
-    description: "Learn legato, half, and flutter pedalling techniques for expressive playing.",
-  },
-  {
-    title: "Octave Endurance Exercises",
-    type: "Exercise Set",
-    description: "Progressive exercises to build stamina and accuracy in octave passages.",
-  },
-  {
-    title: "Voicing in Chordal Textures",
-    type: "Video Breakdown",
-    description: "How to bring out inner melodies and shape chords for musical phrasing.",
-  },
-  {
-    title: "Performance Anxiety Guide",
-    type: "PDF Guide",
-    description: "Practical strategies and mental frameworks for confident stage performance.",
-  },
-]
-
-const behindTheScenes = [
-  {
-    title: "Recording Session: Chopin Ballade No. 1",
-    description: "A raw, unedited look at the recording process behind the flagship course.",
-    duration: "24 min",
-  },
-  {
-    title: "Studio Tour",
-    description: "Walk through the home studio setup, gear choices, and acoustic treatment.",
-    duration: "18 min",
-  },
-  {
-    title: "Rehearsal: Liszt La Campanella",
-    description: "Watch the full rehearsal process from sight-reading to performance-ready.",
-    duration: "32 min",
-  },
-  {
-    title: "DreamPlay One: Prototype Testing",
-    description: "Behind-the-scenes footage of testing the custom-sized keyboard prototype.",
-    duration: "15 min",
-  },
-]
-
-const tourDates = [
-  { date: "Mar 15, 2026", city: "Los Angeles", venue: "The Wiltern", status: "On Sale" },
-  { date: "Mar 22, 2026", city: "San Francisco", venue: "Davies Symphony Hall", status: "On Sale" },
-  { date: "Apr 5, 2026", city: "New York", venue: "Carnegie Hall", status: "Sold Out" },
-  { date: "Apr 12, 2026", city: "Chicago", venue: "Orchestra Hall", status: "On Sale" },
-  { date: "Apr 26, 2026", city: "London", venue: "Wigmore Hall", status: "Coming Soon" },
-  { date: "May 10, 2026", city: "Tokyo", venue: "Suntory Hall", status: "Coming Soon" },
-]
-
-/* ── Login Form ── */
-
-function LoginForm() {
-  const { login } = useAuth()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    login(username, password)
-  }
-
-  return (
-    <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center relative overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0">
-        <Image
-          src="/images/early-days.jpg"
-          alt=""
-          fill
-          className="object-cover opacity-20 grayscale"
-          priority
-          loading="eager"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-[#050505]/60" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-md mx-auto px-6">
-        <div className="border border-white/10 bg-[#050505]/90 backdrop-blur-sm p-8 lg:p-10">
-          <div className="text-center mb-8">
-            <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-4">
-              The Lifetime Vault
-            </p>
-            <h1 className="font-serif text-3xl lg:text-4xl tracking-tight leading-none">
-              Welcome Back
-            </h1>
-            <p className="font-sans text-sm text-white/50 mt-3">
-              Sign in to access your courses, sheet music, and exclusive content.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="login-username"
-                className="text-xs uppercase tracking-widest text-white/50 font-sans"
-              >
-                Username
-              </label>
-              <input
-                id="login-username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Leave blank for testing"
-                className="h-11 w-full rounded-none border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="login-password"
-                className="text-xs uppercase tracking-widest text-white/50 font-sans"
-              >
-                Password
-              </label>
-              <input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank for testing"
-                className="h-11 w-full rounded-none border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-3.5 rounded-none hover:bg-white/90 transition-colors"
-            >
-              Sign In
-            </button>
-          </form>
-
-          <p className="text-center text-xs text-white/30 font-sans mt-6">
-            Leave both fields blank and click Sign In to preview the dashboard.
-          </p>
-        </div>
-      </div>
-    </main>
-  )
+interface Course {
+    id: string
+    title: string
+    lessons_count: string
+    duration: string
+    description: string
+    image_url: string | null
+    sort_order: number
 }
 
-/* ── Progress Bar ── */
-
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <div className="flex items-center gap-3 w-full">
-      <div className="flex-1 h-1 bg-white/10 overflow-hidden">
-        <div
-          className="h-full bg-white transition-all duration-500"
-          style={{ width: `${value}%` }}
-        />
-      </div>
-      <span className="text-xs text-white/50 font-sans tabular-nums w-9 text-right">
-        {value}%
-      </span>
-    </div>
-  )
+interface SheetMusic {
+    id: string
+    title: string
+    pages: number
+    difficulty: string
+    pdf_url: string | null
 }
 
-/* ── Stats Card ── */
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string
-  value: string
-  icon: React.ComponentType<{ className?: string }>
-}) {
-  return (
-    <div className="border border-white/10 bg-white/[0.03] p-5 flex items-start gap-4">
-      <div className="flex items-center justify-center size-10 border border-white/10 shrink-0">
-        <Icon className="size-4 text-white/50" />
-      </div>
-      <div>
-        <p className="font-serif text-2xl tracking-tight leading-none">{value}</p>
-        <p className="text-xs uppercase tracking-widest text-white/40 font-sans mt-1.5">
-          {label}
-        </p>
-      </div>
-    </div>
-  )
+interface BonusMaterial {
+    id: string
+    title: string
+    type: string
+    description: string
+    resource_url: string | null
 }
 
-/* ── Dashboard ── */
+interface BtsClip {
+    id: string
+    title: string
+    description: string
+    duration: string
+    video_url: string | null
+    thumbnail_url: string | null
+}
 
-function Dashboard() {
-  const { logout } = useAuth()
-  const router = useRouter()
+interface TourDate {
+    id: string
+    date: string
+    city: string
+    venue: string
+    status: string
+}
 
-  const coursesStarted = courses.filter((c) => c.progress > 0).length
+type ContentItem = Course | SheetMusic | BonusMaterial | BtsClip | TourDate
 
-  function handleLogout() {
-    logout()
-    router.push("/")
-  }
+/* ── Tab config ── */
 
-  return (
-    <main className="min-h-screen bg-[#050505] text-white">
-      <div className="max-w-6xl mx-auto px-6 py-12 lg:py-16">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-          <div>
-            <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-3">
-              Your Dashboard
-            </p>
-            <h1 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none">
-              The Lifetime Vault
-            </h1>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-white/40 hover:text-white font-sans text-xs uppercase tracking-widest transition-colors self-start sm:self-auto"
-          >
-            <LogOut className="size-3.5" />
-            Log Out
-          </button>
-        </div>
+const tabs = [
+    { key: "courses", label: "Courses", icon: Video, table: "courses" },
+    { key: "sheet_music", label: "Sheet Music", icon: Music, table: "sheet_music" },
+    { key: "bonus", label: "Bonus", icon: Dumbbell, table: "bonus_material" },
+    { key: "bts", label: "BTS", icon: Film, table: "bts_clips" },
+    { key: "tour", label: "Tour", icon: MapPin, table: "tour_dates" },
+] as const
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
-          <StatCard
-            label="Courses in Progress"
-            value={`${coursesStarted} of ${courses.length}`}
-            icon={BookOpen}
-          />
-          <StatCard
-            label="Pieces Available"
-            value={`${sheetMusic.length}`}
-            icon={Music}
-          />
-          <StatCard
-            label="Bonus Resources"
-            value={`${bonusMaterial.length}`}
-            icon={Dumbbell}
-          />
-        </div>
+/* ── Field configs per table ── */
 
-        {/* Tabs */}
-        <Tabs defaultValue="courses">
-          <TabsList className="bg-white/5 border border-white/10 rounded-none h-11 w-full sm:w-auto flex-wrap">
-            <TabsTrigger
-              value="courses"
-              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
-            >
-              <Video className="size-4" />
-              Courses
-            </TabsTrigger>
-            <TabsTrigger
-              value="sheet-music"
-              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
-            >
-              <Music className="size-4" />
-              Sheet Music
-            </TabsTrigger>
-            <TabsTrigger
-              value="bonus"
-              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
-            >
-              <Dumbbell className="size-4" />
-              Bonus
-            </TabsTrigger>
-            <TabsTrigger
-              value="behind-the-scenes"
-              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
-            >
-              <Film className="size-4" />
-              BTS
-            </TabsTrigger>
-            <TabsTrigger
-              value="tour"
-              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
-            >
-              <MapPin className="size-4" />
-              Tour
-            </TabsTrigger>
-          </TabsList>
+interface FieldConfig {
+    name: string
+    label: string
+    type: "text" | "number" | "textarea" | "select" | "file"
+    options?: string[]
+    accept?: string
+    folder?: string
+}
 
-          {/* ── Courses ── */}
-          <TabsContent value="courses" className="mt-8">
-            <div className="flex flex-col gap-4">
-              {courses.map((course, index) => (
-                <div
-                  key={course.title}
-                  className="border border-white/10 bg-white/[0.03] overflow-hidden hover:bg-white/[0.06] transition-colors group"
-                >
-                  <div className="flex flex-col lg:flex-row">
-                    {/* Image */}
-                    <div className="relative w-full lg:w-56 aspect-video lg:aspect-auto shrink-0 overflow-hidden">
-                      <Image
-                        src={course.image}
-                        alt={course.title}
-                        fill
-                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                        {...(index === 0 ? { priority: true, loading: "eager" as const } : {})}
-                      />
-                    </div>
+const fieldConfigs: Record<string, FieldConfig[]> = {
+    courses: [
+        { name: "title", label: "Title", type: "text" },
+        { name: "lessons_count", label: "Lessons (e.g. 42 Lessons)", type: "text" },
+        { name: "duration", label: "Duration (e.g. 12+ Hours)", type: "text" },
+        { name: "description", label: "Description", type: "textarea" },
+        { name: "image_url", label: "Image", type: "file", accept: "image/*", folder: "course-images" },
+        { name: "sort_order", label: "Sort Order", type: "number" },
+    ],
+    sheet_music: [
+        { name: "title", label: "Title", type: "text" },
+        { name: "pages", label: "Pages", type: "number" },
+        { name: "difficulty", label: "Difficulty", type: "select", options: ["Beginner", "Intermediate", "Advanced"] },
+        { name: "pdf_url", label: "PDF File", type: "file", accept: ".pdf", folder: "sheet-music" },
+    ],
+    bonus_material: [
+        { name: "title", label: "Title", type: "text" },
+        { name: "type", label: "Type", type: "select", options: ["Exercise Set", "Video Breakdown", "PDF Guide"] },
+        { name: "description", label: "Description", type: "textarea" },
+        { name: "resource_url", label: "Resource File / URL", type: "text" },
+    ],
+    bts_clips: [
+        { name: "title", label: "Title", type: "text" },
+        { name: "description", label: "Description", type: "textarea" },
+        { name: "duration", label: "Duration (e.g. 24 min)", type: "text" },
+        { name: "video_url", label: "Video URL", type: "text" },
+        { name: "thumbnail_url", label: "Thumbnail", type: "file", accept: "image/*", folder: "bts-thumbnails" },
+    ],
+    tour_dates: [
+        { name: "date", label: "Date (e.g. Mar 15, 2026)", type: "text" },
+        { name: "city", label: "City", type: "text" },
+        { name: "venue", label: "Venue", type: "text" },
+        { name: "status", label: "Status", type: "select", options: ["On Sale", "Sold Out", "Coming Soon"] },
+    ],
+}
 
-                    {/* Content */}
-                    <div className="flex-1 p-6 lg:p-8 flex flex-col justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-serif text-xl lg:text-2xl tracking-tight">
-                            {course.title}
-                          </h3>
-                        </div>
-                        <p className="font-sans text-white/50 text-sm leading-relaxed max-w-lg">
-                          {course.description}
+/* ── Admin Login Gate ── */
+
+function AdminLogin({ onLogin }: { onLogin: () => void }) {
+    const [password, setPassword] = useState("")
+    const [error, setError] = useState("")
+    const [loading, setLoading] = useState(false)
+
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault()
+        setLoading(true)
+        setError("")
+
+        const res = await fetch("/api/admin/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password }),
+        })
+
+        if (res.ok) {
+            sessionStorage.setItem("admin_auth", "true")
+            onLogin()
+        } else {
+            setError("Invalid admin password")
+        }
+        setLoading(false)
+    }
+
+    return (
+        <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
+            <div className="w-full max-w-sm px-6">
+                <div className="border border-white/10 bg-white/[0.03] p-8">
+                    <div className="text-center mb-8">
+                        <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-3">
+                            Admin Access
                         </p>
-                        <div className="flex gap-4 mt-3">
-                          <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
-                            {course.lessons}
-                          </span>
-                          <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
-                            {course.duration}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex-1">
-                          <ProgressBar value={course.progress} />
-                        </div>
-                        <button className="flex items-center gap-2 bg-white text-black font-sans text-xs uppercase tracking-[0.15em] font-bold px-5 py-2.5 hover:bg-white/90 transition-colors shrink-0">
-                          {course.progress > 0 ? (
-                            <>
-                              Continue
-                              <ChevronRight className="size-3.5" />
-                            </>
-                          ) : (
-                            <>
-                              <Play className="size-3" />
-                              Start
-                            </>
-                          )}
-                        </button>
-                      </div>
+                        <h1 className="font-serif text-3xl tracking-tight">Content Manager</h1>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
 
-          {/* ── Sheet Music ── */}
-          <TabsContent value="sheet-music" className="mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sheetMusic.map((piece) => (
-                <div
-                  key={piece.title}
-                  className="border border-white/10 bg-white/[0.03] p-5 flex items-start justify-between gap-4 hover:bg-white/[0.06] transition-colors"
-                >
-                  <div className="flex gap-3 min-w-0">
-                    <FileText
-                      className="size-5 text-white/40 shrink-0 mt-0.5"
-                      strokeWidth={1.5}
-                    />
-                    <div className="min-w-0">
-                      <h3 className="font-sans text-sm text-white truncate">
-                        {piece.title}
-                      </h3>
-                      <div className="flex gap-3 mt-1">
-                        <span className="text-xs text-white/40 font-sans">
-                          {piece.pages} pages
-                        </span>
-                        <span
-                          className={`text-xs font-sans ${
-                            piece.difficulty === "Advanced"
-                              ? "text-white/70"
-                              : piece.difficulty === "Intermediate"
-                                ? "text-white/50"
-                                : "text-white/35"
-                          }`}
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Admin password"
+                            className="h-11 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                        />
+                        {error && <p className="text-red-400 text-xs font-sans">{error}</p>}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-3.5 hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                          {piece.difficulty}
-                        </span>
-                      </div>
+                            {loading && <Loader2 className="size-3.5 animate-spin" />}
+                            Sign In
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    )
+}
+
+/* ── Content Form Dialog ── */
+
+function ContentFormDialog({
+    table,
+    item,
+    onClose,
+    onSaved,
+}: {
+    table: string
+    item: ContentItem | null
+    onClose: () => void
+    onSaved: () => void
+}) {
+    const fields = fieldConfigs[table] || []
+    const [formData, setFormData] = useState<Record<string, string | number>>(() => {
+        if (item) {
+            const data: Record<string, string | number> = {}
+            for (const field of fields) {
+                const val = (item as unknown as Record<string, unknown>)[field.name]
+                data[field.name] = (val as string | number) ?? ""
+            }
+            return data
+        }
+        const defaults: Record<string, string | number> = {}
+        for (const field of fields) {
+            defaults[field.name] = field.type === "number" ? 0 : ""
+        }
+        return defaults
+    })
+    const [uploading, setUploading] = useState(false)
+    const [saving, setSaving] = useState(false)
+
+    async function handleFileUpload(field: FieldConfig, file: File) {
+        setUploading(true)
+        const fd = new FormData()
+        fd.append("file", file)
+        fd.append("folder", field.folder || "uploads")
+
+        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        if (res.ok) {
+            const { url } = await res.json()
+            setFormData((prev) => ({ ...prev, [field.name]: url }))
+        }
+        setUploading(false)
+    }
+
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault()
+        setSaving(true)
+
+        const method = item ? "PUT" : "POST"
+        const body = item ? { id: item.id, ...formData } : formData
+
+        await fetch(`/api/content/${table}`, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        })
+
+        setSaving(false)
+        onSaved()
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-[#0A0A0A] border border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-6 border-b border-white/10">
+                    <h3 className="font-serif text-xl tracking-tight">
+                        {item ? "Edit" : "Add New"} Item
+                    </h3>
+                    <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+                        <X className="size-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+                    {fields.map((field) => (
+                        <div key={field.name} className="flex flex-col gap-1.5">
+                            <label className="text-xs uppercase tracking-widest text-white/50 font-sans">
+                                {field.label}
+                            </label>
+
+                            {field.type === "textarea" ? (
+                                <textarea
+                                    value={formData[field.name] as string}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                    }
+                                    rows={3}
+                                    className="w-full border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans resize-none"
+                                />
+                            ) : field.type === "select" ? (
+                                <select
+                                    value={formData[field.name] as string}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                    }
+                                    className="h-11 w-full border border-white/15 bg-white/5 px-4 text-sm text-white outline-none focus:border-white/40 transition-colors font-sans"
+                                >
+                                    <option value="">Select...</option>
+                                    {field.options?.map((opt) => (
+                                        <option key={opt} value={opt}>
+                                            {opt}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : field.type === "file" ? (
+                                <div className="flex flex-col gap-2">
+                                    {formData[field.name] && (
+                                        <p className="text-xs text-white/40 font-sans break-all">
+                                            {formData[field.name] as string}
+                                        </p>
+                                    )}
+                                    <label className="flex items-center gap-2 cursor-pointer border border-white/15 bg-white/5 px-4 py-2.5 text-xs text-white/60 hover:text-white hover:border-white/30 transition-colors font-sans uppercase tracking-widest w-fit">
+                                        <Upload className="size-3.5" />
+                                        {uploading ? "Uploading..." : "Choose File"}
+                                        <input
+                                            type="file"
+                                            accept={field.accept}
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0]
+                                                if (file) handleFileUpload(field, file)
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            ) : (
+                                <input
+                                    type={field.type}
+                                    value={formData[field.name]}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            [field.name]:
+                                                field.type === "number"
+                                                    ? Number(e.target.value)
+                                                    : e.target.value,
+                                        }))
+                                    }
+                                    className="h-11 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            )}
+                        </div>
+                    ))}
+
+                    <button
+                        type="submit"
+                        disabled={saving || uploading}
+                        className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-3.5 hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {saving && <Loader2 className="size-3.5 animate-spin" />}
+                        {item ? "Save Changes" : "Create"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    )
+}
+
+/* ── Admin Dashboard ── */
+
+function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+    const [activeTab, setActiveTab] = useState<string>(tabs[0].key)
+    const [items, setItems] = useState<ContentItem[]>([])
+    const [loading, setLoading] = useState(false)
+    const [editingItem, setEditingItem] = useState<ContentItem | null>(null)
+    const [showForm, setShowForm] = useState(false)
+
+    const activeTabConfig = tabs.find((t) => t.key === activeTab)!
+    const table = activeTabConfig.table
+
+    const fetchItems = useCallback(async () => {
+        setLoading(true)
+        const res = await fetch(`/api/content/${table}`)
+        if (res.ok) {
+            const data = await res.json()
+            setItems(data)
+        }
+        setLoading(false)
+    }, [table])
+
+    useEffect(() => {
+        fetchItems()
+    }, [fetchItems])
+
+    async function handleDelete(id: string) {
+        if (!confirm("Delete this item?")) return
+
+        await fetch(`/api/content/${table}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+        })
+
+        fetchItems()
+    }
+
+    function handleEdit(item: ContentItem) {
+        setEditingItem(item)
+        setShowForm(true)
+    }
+
+    function handleAdd() {
+        setEditingItem(null)
+        setShowForm(true)
+    }
+
+    function handleFormClose() {
+        setShowForm(false)
+        setEditingItem(null)
+    }
+
+    function handleFormSaved() {
+        setShowForm(false)
+        setEditingItem(null)
+        fetchItems()
+    }
+
+    function getItemTitle(item: ContentItem): string {
+        if ("title" in item) return item.title
+        if ("city" in item) return `${(item as TourDate).city} — ${(item as TourDate).venue}`
+        return "Untitled"
+    }
+
+    function getItemSubtitle(item: ContentItem): string {
+        if ("lessons_count" in item) return `${(item as Course).lessons_count} · ${(item as Course).duration}`
+        if ("pages" in item) return `${(item as SheetMusic).pages} pages · ${(item as SheetMusic).difficulty}`
+        if ("type" in item && "description" in item) return (item as BonusMaterial).type
+        if ("duration" in item && "video_url" in item) return (item as BtsClip).duration
+        if ("status" in item) return `${(item as TourDate).date} · ${(item as TourDate).status}`
+        return ""
+    }
+
+    return (
+        <main className="min-h-screen bg-[#050505] text-white">
+            <div className="max-w-5xl mx-auto px-6 py-12">
+                {/* Header */}
+                <div className="flex items-end justify-between mb-10">
+                    <div>
+                        <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-3">
+                            Admin Panel
+                        </p>
+                        <h1 className="font-serif text-4xl tracking-tight">Content Manager</h1>
                     </div>
-                  </div>
-                  <button className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors shrink-0 border border-white/15 px-3 py-1.5 hover:border-white/30">
-                    <Download className="size-3" />
-                    PDF
-                  </button>
+                    <button
+                        onClick={onLogout}
+                        className="flex items-center gap-2 text-white/40 hover:text-white font-sans text-xs uppercase tracking-widest transition-colors"
+                    >
+                        <LogOut className="size-3.5" />
+                        Log Out
+                    </button>
                 </div>
-              ))}
-            </div>
-          </TabsContent>
 
-          {/* ── Bonus Material ── */}
-          <TabsContent value="bonus" className="mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {bonusMaterial.map((item) => (
-                <div
-                  key={item.title}
-                  className="border border-white/10 bg-white/[0.03] p-6 flex flex-col hover:bg-white/[0.06] transition-colors"
-                >
-                  <span className="text-[10px] uppercase tracking-widest text-white/40 font-sans mb-3">
-                    {item.type}
-                  </span>
-                  <h3 className="font-serif text-lg tracking-tight mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="font-sans text-white/50 text-sm leading-relaxed flex-1">
-                    {item.description}
-                  </p>
-                  <button className="mt-4 flex items-center gap-2 text-white/70 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors self-start border border-white/15 px-3 py-1.5 hover:border-white/30">
-                    Access
-                  </button>
+                {/* Tabs */}
+                <div className="flex flex-wrap gap-0 border border-white/10 bg-white/[0.03] mb-8">
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon
+                        const isActive = activeTab === tab.key
+                        return (
+                            <button
+                                key={tab.key}
+                                onClick={() => setActiveTab(tab.key)}
+                                className={`flex items-center gap-2 px-5 py-3 text-xs uppercase tracking-widest font-sans transition-colors border-r border-white/10 last:border-r-0 ${isActive
+                                    ? "bg-white text-black font-bold"
+                                    : "text-white/60 hover:text-white hover:bg-white/[0.06]"
+                                    }`}
+                            >
+                                <Icon className="size-4" />
+                                {tab.label}
+                            </button>
+                        )
+                    })}
                 </div>
-              ))}
-            </div>
-          </TabsContent>
 
-          {/* ── Behind the Scenes ── */}
-          <TabsContent value="behind-the-scenes" className="mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {behindTheScenes.map((clip) => (
-                <div
-                  key={clip.title}
-                  className="border border-white/10 bg-white/[0.03] p-6 flex flex-col hover:bg-white/[0.06] transition-colors group"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <Film className="size-5 text-white/30 shrink-0 mt-0.5" strokeWidth={1.5} />
-                    <span className="text-xs text-white/40 font-sans shrink-0">{clip.duration}</span>
-                  </div>
-                  <h3 className="font-serif text-lg tracking-tight mb-2">
-                    {clip.title}
-                  </h3>
-                  <p className="font-sans text-white/50 text-sm leading-relaxed flex-1">
-                    {clip.description}
-                  </p>
-                  <button className="mt-4 flex items-center gap-2 text-white/70 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors self-start border border-white/15 px-3 py-1.5 hover:border-white/30 group-hover:border-white/30 group-hover:text-white">
-                    <Play className="size-3" />
-                    Watch
-                  </button>
+                {/* Add button */}
+                <div className="flex items-center justify-between mb-6">
+                    <p className="font-sans text-sm text-white/50">
+                        {loading ? "Loading..." : `${items.length} item${items.length !== 1 ? "s" : ""}`}
+                    </p>
+                    <button
+                        onClick={handleAdd}
+                        className="flex items-center gap-2 bg-white text-black font-sans text-xs uppercase tracking-[0.15em] font-bold px-5 py-2.5 hover:bg-white/90 transition-colors"
+                    >
+                        <Plus className="size-3.5" />
+                        Add New
+                    </button>
                 </div>
-              ))}
+
+                {/* Item list */}
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 className="size-6 text-white/30 animate-spin" />
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="border border-white/10 bg-white/[0.02] py-20 text-center">
+                        <p className="text-white/30 font-sans text-sm">No items yet.</p>
+                        <button
+                            onClick={handleAdd}
+                            className="mt-4 text-white/60 hover:text-white font-sans text-xs uppercase tracking-widest transition-colors"
+                        >
+                            + Add your first item
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-col divide-y divide-white/[0.06] border border-white/10">
+                        {items.map((item) => (
+                            <div
+                                key={item.id}
+                                className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.03] transition-colors"
+                            >
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-sans text-sm text-white truncate">
+                                        {getItemTitle(item)}
+                                    </p>
+                                    <p className="font-sans text-xs text-white/40 mt-0.5">
+                                        {getItemSubtitle(item)}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 ml-4">
+                                    <button
+                                        onClick={() => handleEdit(item)}
+                                        className="p-2 text-white/40 hover:text-white transition-colors"
+                                        title="Edit"
+                                    >
+                                        <Edit3 className="size-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(item.id)}
+                                        className="p-2 text-white/40 hover:text-red-400 transition-colors"
+                                        title="Delete"
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Form dialog */}
+                {showForm && (
+                    <ContentFormDialog
+                        table={table}
+                        item={editingItem}
+                        onClose={handleFormClose}
+                        onSaved={handleFormSaved}
+                    />
+                )}
             </div>
-          </TabsContent>
-
-          {/* ── Concert Tour ── */}
-          <TabsContent value="tour" className="mt-8">
-            <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10">
-              {tourDates.map((show) => (
-                <div
-                  key={`${show.date}-${show.city}`}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between py-5 gap-3"
-                >
-                  <div className="flex items-center gap-3 text-white/70 font-sans text-sm">
-                    <Calendar className="size-4 shrink-0 text-white/40" strokeWidth={1.5} />
-                    <span className="w-28">{show.date}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <MapPin className="size-4 shrink-0 text-white/40" strokeWidth={1.5} />
-                    <span className="font-sans text-white">{show.city}</span>
-                    <span className="text-white/40 font-sans text-sm truncate">
-                      {show.venue}
-                    </span>
-                  </div>
-
-                  <span
-                    className={`text-xs uppercase tracking-widest font-sans px-3 py-1 border shrink-0 ${
-                      show.status === "Sold Out"
-                        ? "border-white/10 text-white/30"
-                        : show.status === "Coming Soon"
-                          ? "border-white/15 text-white/50"
-                          : "border-white/30 text-white"
-                    }`}
-                  >
-                    {show.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </main>
-  )
+        </main>
+    )
 }
 
 /* ── Page ── */
 
-export default function LoginPage() {
-  const { isLoggedIn, isReady } = useAuth()
+export default function AdminPage() {
+    const [authed, setAuthed] = useState(false)
+    const [ready, setReady] = useState(false)
 
-  if (!isReady) {
-    return (
-      <main className="min-h-screen bg-[#050505]" />
+    useEffect(() => {
+        const stored = sessionStorage.getItem("admin_auth")
+        if (stored === "true") setAuthed(true)
+        setReady(true)
+    }, [])
+
+    function handleLogout() {
+        sessionStorage.removeItem("admin_auth")
+        setAuthed(false)
+    }
+
+    if (!ready) return <main className="min-h-screen bg-[#050505]" />
+
+    return authed ? (
+        <AdminDashboard onLogout={handleLogout} />
+    ) : (
+        <AdminLogin onLogin={() => setAuthed(true)} />
     )
-  }
+}
+</file>
 
-  return isLoggedIn ? <Dashboard /> : <LoginForm />
+<file path="app/api/admin/auth/route.ts">
+import { NextResponse } from "next/server"
+
+export async function POST(request: Request) {
+    const { password } = await request.json()
+    const adminPassword = process.env.ADMIN_PASSWORD
+
+    if (!adminPassword) {
+        return NextResponse.json(
+            { error: "Admin password not configured" },
+            { status: 500 }
+        )
+    }
+
+    if (password === adminPassword) {
+        return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: "Invalid password" }, { status: 401 })
+}
+</file>
+
+<file path="app/api/checkout/route.ts">
+import { NextResponse } from "next/server"
+import Stripe from "stripe"
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2026-01-28.clover",
+})
+
+export async function POST(request: Request) {
+    const { origin } = new URL(request.url)
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            mode: "payment",
+            line_items: [
+                {
+                    price_data: {
+                        currency: "usd",
+                        product_data: {
+                            name: "MusicalBasics Lifetime Vault Membership",
+                            description:
+                                "Lifetime access to every course, sheet music piece, and future release. One-time payment.",
+                        },
+                        unit_amount: 14700, // $147.00 in cents
+                    },
+                    quantity: 1,
+                },
+            ],
+            success_url: `${origin}/login?checkout=success`,
+            cancel_url: `${origin}/#pricing`,
+        })
+
+        return NextResponse.json({ url: session.url })
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Checkout failed"
+        return NextResponse.json({ error: message }, { status: 500 })
+    }
+}
+</file>
+
+<file path="app/api/content/[table]/route.ts">
+import { NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
+
+const ALLOWED_TABLES = [
+    "courses",
+    "sheet_music",
+    "bonus_material",
+    "bts_clips",
+    "tour_dates",
+] as const
+
+type TableName = (typeof ALLOWED_TABLES)[number]
+
+function isAllowedTable(table: string): table is TableName {
+    return ALLOWED_TABLES.includes(table as TableName)
+}
+
+// GET — public read
+export async function GET(
+    _request: Request,
+    { params }: { params: Promise<{ table: string }> }
+) {
+    const { table } = await params
+
+    if (!isAllowedTable(table)) {
+        return NextResponse.json({ error: "Invalid table" }, { status: 400 })
+    }
+
+    const orderCol = table === "courses" ? "sort_order" : "created_at"
+    const { data, error } = await supabase
+        .from(table)
+        .select("*")
+        .order(orderCol, { ascending: true })
+
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+}
+
+// POST — admin create
+export async function POST(
+    request: Request,
+    { params }: { params: Promise<{ table: string }> }
+) {
+    const { table } = await params
+
+    if (!isAllowedTable(table)) {
+        return NextResponse.json({ error: "Invalid table" }, { status: 400 })
+    }
+
+    const body = await request.json()
+    const admin = createAdminClient()
+
+    const { data, error } = await admin.from(table).insert(body).select().single()
+
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data, { status: 201 })
+}
+
+// PUT — admin update
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ table: string }> }
+) {
+    const { table } = await params
+
+    if (!isAllowedTable(table)) {
+        return NextResponse.json({ error: "Invalid table" }, { status: 400 })
+    }
+
+    const { id, ...updates } = await request.json()
+
+    if (!id) {
+        return NextResponse.json({ error: "Missing id" }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const { data, error } = await admin
+        .from(table)
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single()
+
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+}
+
+// DELETE — admin delete
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ table: string }> }
+) {
+    const { table } = await params
+
+    if (!isAllowedTable(table)) {
+        return NextResponse.json({ error: "Invalid table" }, { status: 400 })
+    }
+
+    const { id } = await request.json()
+
+    if (!id) {
+        return NextResponse.json({ error: "Missing id" }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const { error } = await admin.from(table).delete().eq("id", id)
+
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+}
+</file>
+
+<file path="app/api/upload/route.ts">
+import { NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase"
+
+export async function POST(request: Request) {
+    const formData = await request.formData()
+    const file = formData.get("file") as File | null
+    const folder = (formData.get("folder") as string) || "uploads"
+
+    if (!file) {
+        return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const ext = file.name.split(".").pop()
+    const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    const { error } = await admin.storage
+        .from("vault-files")
+        .upload(fileName, buffer, {
+            contentType: file.type,
+            upsert: false,
+        })
+
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const { data: urlData } = admin.storage
+        .from("vault-files")
+        .getPublicUrl(fileName)
+
+    return NextResponse.json({ url: urlData.publicUrl }, { status: 201 })
 }
 </file>
 
@@ -1139,135 +1343,6 @@ export default function PoliciesPage() {
 }
 </file>
 
-<file path="app/globals.css">
-@import 'tailwindcss';
-@import 'tw-animate-css';
-
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-}
-
-@theme inline {
-  --font-sans: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-playfair), 'Playfair Display', ui-serif, Georgia, serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-</file>
-
 <file path="app/layout.tsx">
 import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
@@ -1328,34 +1403,6 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
-}
-</file>
-
-<file path="app/page.tsx">
-import { StickyBanner } from "@/components/sticky-banner"
-import { HeroSection } from "@/components/hero-section"
-import { LetterSection } from "@/components/letter-section"
-import { VaultContents } from "@/components/vault-contents"
-import { BonusMaterialSection } from "@/components/bonus-material-section"
-import { ConcertTourSection } from "@/components/concert-tour-section"
-import { BehindTheScenesSection } from "@/components/behind-the-scenes-section"
-import { PricingSection } from "@/components/pricing-section"
-import { FaqSection } from "@/components/faq-section"
-
-export default function Page() {
-  return (
-    <main>
-      <StickyBanner />
-      <HeroSection />
-      <LetterSection />
-      <VaultContents />
-      <BonusMaterialSection />
-      <ConcertTourSection />
-      <BehindTheScenesSection />
-      <PricingSection />
-      <FaqSection />
-    </main>
   )
 }
 </file>
@@ -8035,364 +8082,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 </file>
 
-<file path="components/behind-the-scenes-section.tsx">
-"use client"
+<file path="components/footer.tsx">
+import Link from "next/link"
 
-import Image from "next/image"
-import { MembersOnlyGate } from "@/components/members-only-gate"
-import { Play } from "lucide-react"
-
-const clips = [
-  {
-    title: "Recording Session: Chopin Ballade No. 1",
-    description: "A raw, unedited look at the recording process behind the flagship course.",
-    image: "/images/recording-session-chopin.jpg",
-  },
-  {
-    title: "Studio Tour",
-    description: "Walk through the home studio setup, gear choices, and acoustic treatment.",
-    image: "/images/studio-tour.jpg",
-  },
-  {
-    title: "Rehearsal: Liszt La Campanella",
-    description: "Watch the full rehearsal process from sight-reading to performance-ready.",
-    image: "/images/rehearsal-liszt.jpg",
-  },
-  {
-    title: "DreamPlay One: Prototype Testing",
-    description: "Behind-the-scenes footage of testing the custom-sized keyboard prototype.",
-    image: "/images/dreamplay-one-prototype.jpg",
-  },
-]
-
-export function BehindTheScenesSection() {
-  return (
-    <section className="bg-[#0a0a0f] text-white border-t border-white/5">
-      <MembersOnlyGate>
-        <div className="max-w-6xl mx-auto px-6 py-24">
-          <div className="text-center mb-16">
-            <span className="uppercase tracking-widest text-xs border border-white/20 px-3 py-1 inline-block text-white/60 font-sans mb-6">
-              Members Exclusive
-            </span>
-            <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
-              Behind the Scenes
-            </h2>
-            <p className="text-white/50 font-sans mt-4 max-w-lg mx-auto text-pretty">
-              Exclusive footage from recording sessions, rehearsals, and the making of the DreamPlay One.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {clips.map((clip) => (
-              <div
-                key={clip.title}
-                className="group border border-white/10 bg-white/5 overflow-hidden hover:bg-white/[0.08] transition-colors"
-              >
-                <div className="relative aspect-video overflow-hidden">
-                  <Image
-                    src={clip.image}
-                    alt={clip.title}
-                    fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center justify-center size-14 rounded-full border border-white/40 bg-black/50">
-                      <Play className="size-6 text-white ml-0.5" fill="white" />
+export function Footer() {
+    return (
+        <footer className="bg-[#050505] text-white border-t border-white/[0.06]">
+            <div className="max-w-6xl mx-auto px-6 py-16">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+                    {/* Brand */}
+                    <div>
+                        <p className="font-serif text-lg tracking-tight mb-3">Musical Basics</p>
+                        <p className="font-sans text-white/30 text-sm leading-relaxed max-w-xs">
+                            Piano education reimagined. Courses, sheet music, and exclusive content by Lionel Yu.
+                        </p>
                     </div>
-                  </div>
+
+                    {/* Links */}
+                    <div>
+                        <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4">
+                            Navigation
+                        </p>
+                        <div className="flex flex-col gap-2.5">
+                            <Link href="/" className="font-sans text-sm text-white/50 hover:text-[var(--gold)] transition-colors">
+                                Home
+                            </Link>
+                            <Link href="/policies" className="font-sans text-sm text-white/50 hover:text-[var(--gold)] transition-colors">
+                                Policies & Refunds
+                            </Link>
+                            <Link href="/login" className="font-sans text-sm text-white/50 hover:text-[var(--gold)] transition-colors">
+                                Member Login
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Contact */}
+                    <div>
+                        <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4">
+                            Contact
+                        </p>
+                        <a
+                            href="mailto:hello@musicalbasics.com"
+                            className="font-sans text-sm text-white/50 hover:text-[var(--gold)] transition-colors"
+                        >
+                            hello@musicalbasics.com
+                        </a>
+                    </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="font-serif text-xl tracking-tight mb-2">
-                    {clip.title}
-                  </h3>
-                  <p className="font-sans text-white/50 text-sm leading-relaxed">
-                    {clip.description}
-                  </p>
+
+                {/* Bottom bar */}
+                <div className="mt-16 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="font-sans text-xs text-white/20">
+                        &copy; {new Date().getFullYear()} Musical Basics. All rights reserved.
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <div className="w-6 h-px bg-gradient-to-r from-transparent to-[var(--gold)]/20" />
+                        <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-[var(--gold)]/30">
+                            Est. 2024
+                        </span>
+                        <div className="w-6 h-px bg-gradient-to-l from-transparent to-[var(--gold)]/20" />
+                    </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </MembersOnlyGate>
-    </section>
-  )
-}
-</file>
-
-<file path="components/bonus-material-section.tsx">
-"use client"
-
-import Image from "next/image"
-import { MembersOnlyGate } from "@/components/members-only-gate"
-
-const items = [
-  {
-    title: "Warm-Up Routines",
-    description:
-      "A curated set of daily warm-up exercises designed to build finger independence, strengthen hand posture, and prepare you for demanding repertoire.",
-    image: "/images/hands-warmup-bw.jpg",
-    imageAlt: "Hands warming up on piano keys",
-  },
-  {
-    title: "Advanced Technique Breakdowns",
-    description:
-      "In-depth video walkthroughs of advanced techniques including trills, octave runs, legato pedalling, and voicing in dense chordal passages.",
-    image: "/images/advanced-technique-bw.jpg",
-    imageAlt: "Overhead view of hands playing piano keys in black and white",
-  },
-]
-
-export function BonusMaterialSection() {
-  return (
-    <section className="bg-[#0a0a0f] text-white">
-      <MembersOnlyGate>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="pt-24 pb-4 text-center">
-            <span className="uppercase tracking-widest text-xs border border-white/20 px-3 py-1 inline-block text-white/60 font-sans mb-6">
-              Members Exclusive
-            </span>
-            <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
-              Bonus Material
-            </h2>
-          </div>
-        </div>
-
-        {items.map((item, i) => {
-          const imageFirst = i % 2 === 0
-
-          const imageBlock = (
-            <div className="relative aspect-[4/3] w-full overflow-hidden">
-              <Image
-                src={item.image}
-                alt={item.imageAlt}
-                fill
-                className="object-cover grayscale"
-              />
             </div>
-          )
-
-          const textBlock = (
-            <div className="flex flex-col justify-center px-6 lg:px-16">
-              <h3 className="font-serif text-3xl lg:text-4xl tracking-tight leading-tight mb-6 text-balance">
-                {item.title}
-              </h3>
-              <p className="font-sans text-white/60 text-lg leading-relaxed max-w-md">
-                {item.description}
-              </p>
-            </div>
-          )
-
-          return (
-            <div
-              key={item.title}
-              className="grid md:grid-cols-2 gap-0 max-w-6xl mx-auto items-center py-20 border-t border-white/5"
-            >
-              {imageFirst ? (
-                <>
-                  {imageBlock}
-                  {textBlock}
-                </>
-              ) : (
-                <>
-                  <div className="order-2 md:order-1">{textBlock}</div>
-                  <div className="order-1 md:order-2">{imageBlock}</div>
-                </>
-              )}
-            </div>
-          )
-        })}
-      </MembersOnlyGate>
-    </section>
-  )
-}
-</file>
-
-<file path="components/concert-tour-section.tsx">
-"use client"
-
-import { MembersOnlyGate } from "@/components/members-only-gate"
-import { MapPin, Calendar } from "lucide-react"
-
-const tourDates = [
-  { date: "Mar 15, 2026", city: "Los Angeles", venue: "The Wiltern", status: "On Sale" },
-  { date: "Mar 22, 2026", city: "San Francisco", venue: "Davies Symphony Hall", status: "On Sale" },
-  { date: "Apr 5, 2026", city: "New York", venue: "Carnegie Hall", status: "Sold Out" },
-  { date: "Apr 12, 2026", city: "Chicago", venue: "Orchestra Hall", status: "On Sale" },
-  { date: "Apr 26, 2026", city: "London", venue: "Wigmore Hall", status: "Coming Soon" },
-  { date: "May 10, 2026", city: "Tokyo", venue: "Suntory Hall", status: "Coming Soon" },
-]
-
-export function ConcertTourSection() {
-  return (
-    <section className="bg-[#050505] text-white border-t border-white/5">
-      <MembersOnlyGate>
-        <div className="max-w-4xl mx-auto px-6 py-24">
-          <div className="text-center mb-16">
-            <span className="uppercase tracking-widest text-xs border border-white/20 px-3 py-1 inline-block text-white/60 font-sans mb-6">
-              Members Exclusive
-            </span>
-            <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
-              Concert Tour 2026
-            </h2>
-            <p className="text-white/50 font-sans mt-4 max-w-lg mx-auto text-pretty">
-              Get early access to concert dates and exclusive pre-sale tickets as a Vault member.
-            </p>
-          </div>
-
-          <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10">
-            {tourDates.map((show) => (
-              <div
-                key={`${show.date}-${show.city}`}
-                className="flex flex-col sm:flex-row sm:items-center justify-between py-5 gap-3"
-              >
-                <div className="flex items-center gap-3 text-white/70 font-sans text-sm">
-                  <Calendar className="size-4 shrink-0 text-white/40" strokeWidth={1.5} />
-                  <span className="w-28">{show.date}</span>
-                </div>
-
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <MapPin className="size-4 shrink-0 text-white/40" strokeWidth={1.5} />
-                  <span className="font-sans text-white">
-                    {show.city}
-                  </span>
-                  <span className="text-white/40 font-sans text-sm truncate">
-                    {show.venue}
-                  </span>
-                </div>
-
-                <span
-                  className={`text-xs uppercase tracking-widest font-sans px-3 py-1 border shrink-0 ${
-                    show.status === "Sold Out"
-                      ? "border-white/10 text-white/30"
-                      : show.status === "Coming Soon"
-                        ? "border-white/15 text-white/50"
-                        : "border-white/30 text-white"
-                  }`}
-                >
-                  {show.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </MembersOnlyGate>
-    </section>
-  )
-}
-</file>
-
-<file path="components/faq-section.tsx">
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-
-const faqs = [
-  {
-    q: "Is this really a one-time fee?",
-    a: "Yes. No subscriptions. You pay $147 once and own the content forever.",
-  },
-  {
-    q: "How do I access the files?",
-    a: "Immediately after checkout, you will be securely redirected to the private Vault folder to download your PDFs and access your private video links.",
-  },
-  {
-    q: "I\u2019m already a monthly subscriber, what should I do?",
-    a: "Nothing! You are grandfathered into your current rate forever as long as you don\u2019t cancel. This vault is for people who want to own everything upfront without a subscription.",
-  },
-]
-
-export function FaqSection() {
-  return (
-    <section className="bg-[#050505] text-white py-24 px-6">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="font-serif text-4xl tracking-tight leading-none text-center mb-16 text-balance">
-          Frequently Asked Questions
-        </h2>
-
-        <Accordion type="single" collapsible className="w-full">
-          {faqs.map((faq, i) => (
-            <AccordionItem
-              key={i}
-              value={`item-${i}`}
-              className="border-b border-white/10 last:border-b-0"
-            >
-              <AccordionTrigger className="font-sans text-base text-white/90 hover:text-white hover:no-underline py-6">
-                {faq.q}
-              </AccordionTrigger>
-              <AccordionContent className="font-sans text-white/60 leading-relaxed text-base pb-6">
-                {faq.a}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </div>
-    </section>
-  )
-}
-</file>
-
-<file path="components/letter-section.tsx">
-import Image from "next/image"
-
-export function LetterSection() {
-  return (
-    <section className="bg-white text-black py-24 px-6">
-      <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto items-center">
-        <div className="relative aspect-[3/4] w-full overflow-hidden">
-          <Image
-            src="/images/early-days.jpg"
-            alt="Piano keys with bokeh lights in black and white"
-            fill
-            className="object-cover grayscale"
-            priority
-            loading="eager"
-          />
-        </div>
-
-        <div>
-          <h2 className="font-serif text-3xl lg:text-4xl tracking-tight leading-none mb-8 text-balance">
-            An end to the {"\u201C"}early days{"\u201D"}.
-          </h2>
-
-          <div className="space-y-6 text-lg font-sans text-black/80 leading-relaxed">
-            <p>Hi everyone, it{"'"}s Lionel.</p>
-
-            <p>
-              For the last two years, I{"'"}ve been pouring my life savings into
-              building the DreamPlay One{"\u2014"}a professional piano keyboard
-              designed for hands that don{"'"}t fit the standard size.
-            </p>
-
-            <p>
-              We are finally entering the manufacturing phase. Because my time
-              is now completely consumed by bringing this physical instrument to
-              life, I am officially restructuring my digital teaching academy.
-            </p>
-
-            <p>
-              Starting next Monday, my private lessons are moving to $80, and
-              my Lifetime Piano Course is graduating from its beta price to
-              $320.
-            </p>
-
-            <p>
-              But to help fund the final manufacturing costs of the piano
-              {"\u2014"}and to say thank you to the people who have supported my
-              music for years{"\u2014"}I am doing something I{"'"}ve never done
-              before. I am opening the Lifetime Vault.
-            </p>
-          </div>
-
-          <p className="mt-8 font-serif italic text-black/70 text-lg">
-            {"\u2014"} Lionel Yu
-          </p>
-        </div>
-      </div>
-    </section>
-  )
+        </footer>
+    )
 }
 </file>
 
@@ -8432,34 +8185,6 @@ export function MembersOnlyGate({ children }: { children: ReactNode }) {
 }
 </file>
 
-<file path="components/sticky-banner.tsx">
-"use client"
-
-import { useState } from "react"
-import { X } from "lucide-react"
-
-export function StickyBanner() {
-  const [visible, setVisible] = useState(true)
-
-  if (!visible) return null
-
-  return (
-    <div className="bg-white text-black py-2 px-4 text-center relative">
-      <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-medium">
-        {"Warning: CLOSING NEXT FRIDAY AT MIDNIGHT"}
-      </p>
-      <button
-        onClick={() => setVisible(false)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50 hover:text-black transition-colors"
-        aria-label="Dismiss banner"
-      >
-        <X className="size-3.5" />
-      </button>
-    </div>
-  )
-}
-</file>
-
 <file path="components/theme-provider.tsx">
 'use client'
 
@@ -8471,95 +8196,6 @@ import {
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
-}
-</file>
-
-<file path="components/vault-contents.tsx">
-import Image from "next/image"
-
-const rows = [
-  {
-    title: "The Complete Piano Course",
-    value: "$320 Value",
-    body: "My flagship masterclass system. Learn the exact techniques I use to tackle the hardest romantic repertoire.",
-    image: "/images/piano-hands-bw.jpg",
-    imageAlt: "Pianist hands playing grand piano in black and white",
-  },
-  {
-    title: "The Sheet Music Archive",
-    value: "$200+ Value",
-    body: "Every single piece of sheet music I have ever written, transcribed, or arranged. High-quality PDFs ready to print and play.",
-    image: "/images/sheet-music-piano.jpg",
-    imageAlt: "Sheet music book open on piano music stand",
-  },
-  {
-    title: "Future Updates Included",
-    value: "Priceless",
-    body: "Whenever I release new sheet music or add new masterclasses to the academy, you get it automatically. No monthly fees.",
-    image: "/images/pianist-bw.jpg",
-    imageAlt: "Pianist seated at grand piano in black and white",
-  },
-]
-
-export function VaultContents() {
-  return (
-    <section className="bg-[#0a0a0f] text-white">
-      <div className="max-w-6xl mx-auto px-6">
-        <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-center pt-24 pb-16 text-balance">
-          What{"'"}s inside the Vault?
-        </h2>
-      </div>
-
-      {rows.map((row, i) => {
-        const imageFirst = i % 2 === 0
-
-        const imageBlock = (
-          <div key={`img-${i}`} className="relative aspect-[4/3] w-full overflow-hidden">
-            <Image
-              src={row.image}
-              alt={row.imageAlt}
-              fill
-              className="object-cover grayscale"
-              {...(i === 0 ? { priority: true, loading: "eager" as const } : {})}
-            />
-          </div>
-        )
-
-        const textBlock = (
-          <div key={`txt-${i}`} className="flex flex-col justify-center px-6 lg:px-16">
-            <span className="uppercase tracking-widest text-xs border border-white/20 px-3 py-1 inline-block mb-6 text-white/60 self-start">
-              {row.value}
-            </span>
-            <h3 className="font-serif text-4xl lg:text-5xl tracking-tight leading-tight mb-6 text-balance">
-              {row.title}
-            </h3>
-            <p className="font-sans text-white/60 text-lg leading-relaxed max-w-md">
-              {row.body}
-            </p>
-          </div>
-        )
-
-        return (
-          <div
-            key={row.title}
-            className="grid md:grid-cols-2 gap-0 max-w-6xl mx-auto items-center py-24 md:py-32 border-t border-white/5 first:border-t-0"
-          >
-            {imageFirst ? (
-              <>
-                {imageBlock}
-                {textBlock}
-              </>
-            ) : (
-              <>
-                <div className="order-2 md:order-1">{textBlock}</div>
-                <div className="order-1 md:order-2">{imageBlock}</div>
-              </>
-            )}
-          </div>
-        )
-      })}
-    </section>
-  )
 }
 </file>
 
@@ -8779,6 +8415,24 @@ function useToast() {
 export { useToast, toast }
 </file>
 
+<file path="lib/supabase.ts">
+import { createClient } from "@supabase/supabase-js"
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Public client — safe for client-side reads
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Admin client — server-side only, uses service role key for full access
+export function createAdminClient() {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    return createClient(supabaseUrl, serviceRoleKey, {
+        auth: { persistSession: false },
+    })
+}
+</file>
+
 <file path="lib/utils.ts">
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -8916,6 +8570,90 @@ export function cn(...inputs: ClassValue[]) {
 }
 </file>
 
+<file path="supabase/schema.sql">
+-- ============================================================
+-- Lifetime Vault — Supabase Schema
+-- Run this in the Supabase SQL Editor to create all tables.
+-- ============================================================
+
+-- Courses
+create table if not exists courses (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  lessons_count text not null default '0 Lessons',
+  duration text not null default '0 Hours',
+  description text not null default '',
+  image_url text,
+  sort_order int not null default 0,
+  created_at timestamptz default now()
+);
+
+-- Sheet Music
+create table if not exists sheet_music (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  pages int not null default 1,
+  difficulty text not null default 'Beginner',
+  pdf_url text,
+  created_at timestamptz default now()
+);
+
+-- Bonus Material
+create table if not exists bonus_material (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  type text not null default 'PDF Guide',
+  description text not null default '',
+  resource_url text,
+  created_at timestamptz default now()
+);
+
+-- Behind the Scenes clips
+create table if not exists bts_clips (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  description text not null default '',
+  duration text not null default '',
+  video_url text,
+  thumbnail_url text,
+  created_at timestamptz default now()
+);
+
+-- Tour Dates
+create table if not exists tour_dates (
+  id uuid default gen_random_uuid() primary key,
+  date text not null,
+  city text not null,
+  venue text not null default '',
+  status text not null default 'Coming Soon',
+  created_at timestamptz default now()
+);
+
+-- ============================================================
+-- Row Level Security (RLS)
+-- Public read access, service-role-only write access
+-- ============================================================
+
+alter table courses enable row level security;
+alter table sheet_music enable row level security;
+alter table bonus_material enable row level security;
+alter table bts_clips enable row level security;
+alter table tour_dates enable row level security;
+
+-- Public read policies
+create policy "Public read courses" on courses for select using (true);
+create policy "Public read sheet_music" on sheet_music for select using (true);
+create policy "Public read bonus_material" on bonus_material for select using (true);
+create policy "Public read bts_clips" on bts_clips for select using (true);
+create policy "Public read tour_dates" on tour_dates for select using (true);
+
+-- ============================================================
+-- Storage bucket (create manually in Supabase Dashboard)
+-- Bucket name: vault-files
+-- Public: true (so files are accessible via URL)
+-- ============================================================
+</file>
+
 <file path=".gitignore">
 # v0 runtime files (should only exist in preview, not in git)
 __v0_runtime_loader.js
@@ -8976,81 +8714,6 @@ const nextConfig = {
 export default nextConfig
 </file>
 
-<file path="package.json">
-{
-  "name": "my-project",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint ."
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
-    "@vercel/analytics": "1.6.1",
-    "@radix-ui/react-accordion": "1.2.12",
-    "@radix-ui/react-alert-dialog": "1.1.15",
-    "@radix-ui/react-aspect-ratio": "1.1.8",
-    "@radix-ui/react-avatar": "1.1.11",
-    "@radix-ui/react-checkbox": "1.3.3",
-    "@radix-ui/react-collapsible": "1.1.12",
-    "@radix-ui/react-context-menu": "2.2.16",
-    "@radix-ui/react-dialog": "1.1.15",
-    "@radix-ui/react-dropdown-menu": "2.1.16",
-    "@radix-ui/react-hover-card": "1.1.15",
-    "@radix-ui/react-label": "2.1.8",
-    "@radix-ui/react-menubar": "1.1.16",
-    "@radix-ui/react-navigation-menu": "1.2.14",
-    "@radix-ui/react-popover": "1.1.15",
-    "@radix-ui/react-progress": "1.1.8",
-    "@radix-ui/react-radio-group": "1.3.8",
-    "@radix-ui/react-scroll-area": "1.2.10",
-    "@radix-ui/react-select": "2.2.6",
-    "@radix-ui/react-separator": "1.1.8",
-    "@radix-ui/react-slider": "1.3.6",
-    "@radix-ui/react-slot": "1.2.4",
-    "@radix-ui/react-switch": "1.2.6",
-    "@radix-ui/react-tabs": "1.1.13",
-    "@radix-ui/react-toast": "1.2.15",
-    "@radix-ui/react-toggle": "1.1.10",
-    "@radix-ui/react-toggle-group": "1.1.11",
-    "@radix-ui/react-tooltip": "1.2.8",
-    "autoprefixer": "^10.4.20",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "1.1.1",
-    "date-fns": "4.1.0",
-    "embla-carousel-react": "8.6.0",
-    "input-otp": "1.4.2",
-    "lucide-react": "^0.564.0",
-    "next": "16.1.4",
-    "next-themes": "^0.4.6",
-    "react": "19.2.4",
-    "react-day-picker": "9.13.2",
-    "react-dom": "19.2.4",
-    "react-hook-form": "^7.54.1",
-    "react-resizable-panels": "^2.1.7",
-    "recharts": "2.15.0",
-    "sonner": "^1.7.1",
-    "tailwind-merge": "^3.3.1",
-    "vaul": "^1.1.2",
-    "zod": "^3.24.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
-    "@types/node": "^22",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
-    "postcss": "^8.5",
-    "tailwindcss": "^4.1.9",
-    "tw-animate-css": "1.3.3",
-    "typescript": "5.7.3"
-  }
-}
-</file>
-
 <file path="postcss.config.mjs">
 /** @type {import('postcss-load-config').Config} */
 const config = {
@@ -9060,6 +8723,31 @@ const config = {
 }
 
 export default config
+</file>
+
+<file path="repomix.config.json">
+{
+    "output": {
+        "filePath": "repomix-output.xml",
+        "style": "xml"
+    },
+    "ignore": {
+        "customPatterns": [
+            "node_modules",
+            ".next",
+            "public/images",
+            "*.jpg",
+            "*.png",
+            "*.ico",
+            "*.svg",
+            "*.mp4",
+            "*.webm",
+            "pnpm-lock.yaml",
+            ".DS_Store",
+            "repomix-output.*"
+        ]
+    }
+}
 </file>
 
 <file path="tsconfig.json">
@@ -9106,127 +8794,1420 @@ export default config
 }
 </file>
 
-<file path="components/pricing-section.tsx">
-import { Check } from "lucide-react"
-import Image from "next/image"
+<file path="app/login/page.tsx">
+"use client"
 
-const bullets = [
-  "The Complete Video Course",
-  "The Entire Sheet Music Library",
-  "All Future Digital Releases",
+import { useState, useEffect, useCallback } from "react"
+import { useAuth } from "@/components/auth-provider"
+import { useRouter } from "next/navigation"
+import Image from "next/image"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import {
+  Play,
+  Download,
+  FileText,
+  Video,
+  Music,
+  Dumbbell,
+  Film,
+  MapPin,
+  Calendar,
+  BookOpen,
+  LogOut,
+  ChevronRight,
+} from "lucide-react"
+
+/* ── Fallback Data (used when Supabase is empty or unconfigured) ── */
+
+const fallbackCourses = [
+  {
+    id: "f1", title: "The Complete Piano Course", lessons_count: "42 Lessons",
+    duration: "12+ Hours", description: "Master romantic repertoire with Lionel's flagship system covering technique, interpretation, and performance.",
+    image_url: "/images/piano-hands-bw.jpg", sort_order: 0,
+  },
+  {
+    id: "f2", title: "Sight-Reading Accelerator", lessons_count: "18 Lessons",
+    duration: "5 Hours", description: "Build fluent sight-reading skills from scratch with progressive exercises and real repertoire.",
+    image_url: "/images/sheet-music-piano.jpg", sort_order: 1,
+  },
+  {
+    id: "f3", title: "Music Theory Foundations", lessons_count: "24 Lessons",
+    duration: "7 Hours", description: "Understand harmony, chord progressions, and form. Essential knowledge for any serious pianist.",
+    image_url: "/images/early-days.jpg", sort_order: 2,
+  },
 ]
 
-export function PricingSection() {
+const fallbackSheetMusic = [
+  { id: "s1", title: "Chopin - Ballade No. 1 in G Minor", pages: 14, difficulty: "Advanced", pdf_url: null as string | null },
+  { id: "s2", title: "Debussy - Clair de Lune", pages: 6, difficulty: "Intermediate", pdf_url: null as string | null },
+  { id: "s3", title: "Liszt - La Campanella", pages: 12, difficulty: "Advanced", pdf_url: null as string | null },
+  { id: "s4", title: "Bach - Prelude in C Major", pages: 3, difficulty: "Beginner", pdf_url: null as string | null },
+  { id: "s5", title: "Rachmaninoff - Prelude in C# Minor", pages: 8, difficulty: "Advanced", pdf_url: null as string | null },
+  { id: "s6", title: "Satie - Gymnop\u00e9die No. 1", pages: 4, difficulty: "Beginner", pdf_url: null as string | null },
+  { id: "s7", title: "Beethoven - Moonlight Sonata Mvt. 1", pages: 5, difficulty: "Intermediate", pdf_url: null as string | null },
+  { id: "s8", title: "Lionel Yu - Original: Stillwater", pages: 6, difficulty: "Intermediate", pdf_url: null as string | null },
+]
+
+const fallbackBonusMaterial = [
+  { id: "b1", title: "Daily Warm-Up Routine", type: "Exercise Set", description: "A 15-minute daily routine covering scales, arpeggios, and finger independence drills." },
+  { id: "b2", title: "Advanced Trill Technique", type: "Video Breakdown", description: "In-depth tutorial on achieving even, rapid trills across all fingers." },
+  { id: "b3", title: "Pedalling Masterclass", type: "Video Breakdown", description: "Learn legato, half, and flutter pedalling techniques for expressive playing." },
+  { id: "b4", title: "Octave Endurance Exercises", type: "Exercise Set", description: "Progressive exercises to build stamina and accuracy in octave passages." },
+  { id: "b5", title: "Voicing in Chordal Textures", type: "Video Breakdown", description: "How to bring out inner melodies and shape chords for musical phrasing." },
+  { id: "b6", title: "Performance Anxiety Guide", type: "PDF Guide", description: "Practical strategies and mental frameworks for confident stage performance." },
+]
+
+const fallbackBehindTheScenes = [
+  { id: "bts1", title: "Recording Session: Chopin Ballade No. 1", description: "A raw, unedited look at the recording process behind the flagship course.", duration: "24 min" },
+  { id: "bts2", title: "Studio Tour", description: "Walk through the home studio setup, gear choices, and acoustic treatment.", duration: "18 min" },
+  { id: "bts3", title: "Rehearsal: Liszt La Campanella", description: "Watch the full rehearsal process from sight-reading to performance-ready.", duration: "32 min" },
+  { id: "bts4", title: "DreamPlay One: Prototype Testing", description: "Behind-the-scenes footage of testing the custom-sized keyboard prototype.", duration: "15 min" },
+]
+
+const fallbackTourDates = [
+  { id: "t1", date: "Mar 15, 2026", city: "Los Angeles", venue: "The Wiltern", status: "On Sale" },
+  { id: "t2", date: "Mar 22, 2026", city: "San Francisco", venue: "Davies Symphony Hall", status: "On Sale" },
+  { id: "t3", date: "Apr 5, 2026", city: "New York", venue: "Carnegie Hall", status: "Sold Out" },
+  { id: "t4", date: "Apr 12, 2026", city: "Chicago", venue: "Orchestra Hall", status: "On Sale" },
+  { id: "t5", date: "Apr 26, 2026", city: "London", venue: "Wigmore Hall", status: "Coming Soon" },
+  { id: "t6", date: "May 10, 2026", city: "Tokyo", venue: "Suntory Hall", status: "Coming Soon" },
+]
+
+/* ── Hook to fetch content with fallback ── */
+
+function useContent<T>(table: string, fallback: T[]): { data: T[]; loading: boolean } {
+  const [data, setData] = useState<T[]>(fallback)
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/content/${table}`)
+      if (res.ok) {
+        const items = await res.json()
+        if (Array.isArray(items) && items.length > 0) {
+          setData(items)
+        }
+      }
+    } catch {
+      // Supabase not configured, use fallbacks
+    } finally {
+      setLoading(false)
+    }
+  }, [table])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return { data, loading }
+}
+
+/* ── Login Form ── */
+
+function LoginForm() {
+  const { login } = useAuth()
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    login(username, password)
+  }
+
   return (
-    <section
-      id="pricing"
-      className="bg-[#0c0c0c] text-white border-t border-white/5 py-24 px-6"
-    >
-      <div className="grid md:grid-cols-2 max-w-6xl mx-auto items-center gap-12">
-        <div className="relative aspect-[4/3] w-full overflow-hidden">
-          <Image
-            src="/images/piano-hands-bw.jpg"
-            alt="Pianist hands on piano keys"
-            fill
-            className="object-cover grayscale"
+    <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center relative overflow-hidden">
+      {/* Background image */}
+      <div className="absolute inset-0">
+        <Image
+          src="/images/early-days.jpg"
+          alt=""
+          fill
+          className="object-cover opacity-20 grayscale"
+          priority
+          loading="eager"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-[#050505]/60" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md mx-auto px-6">
+        <div className="border border-white/10 bg-[#050505]/90 backdrop-blur-sm p-8 lg:p-10">
+          <div className="text-center mb-8">
+            <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-4">
+              The Lifetime Vault
+            </p>
+            <h1 className="font-serif text-3xl lg:text-4xl tracking-tight leading-none">
+              Welcome Back
+            </h1>
+            <p className="font-sans text-sm text-white/50 mt-3">
+              Sign in to access your courses, sheet music, and exclusive content.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="login-username"
+                className="text-xs uppercase tracking-widest text-white/50 font-sans"
+              >
+                Username
+              </label>
+              <input
+                id="login-username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Leave blank for testing"
+                className="h-11 w-full rounded-none border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="login-password"
+                className="text-xs uppercase tracking-widest text-white/50 font-sans"
+              >
+                Password
+              </label>
+              <input
+                id="login-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank for testing"
+                className="h-11 w-full rounded-none border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-3.5 rounded-none hover:bg-white/90 transition-colors"
+            >
+              Sign In
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-white/30 font-sans mt-6">
+            Leave both fields blank and click Sign In to preview the dashboard.
+          </p>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+/* ── Progress Bar ── */
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <div className="flex-1 h-1 bg-white/10 overflow-hidden">
+        <div
+          className="h-full bg-white transition-all duration-500"
+          style={{ width: `${value}%` }}
+        />
+      </div>
+      <span className="text-xs text-white/50 font-sans tabular-nums w-9 text-right">
+        {value}%
+      </span>
+    </div>
+  )
+}
+
+/* ── Stats Card ── */
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string
+  value: string
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <div className="border border-white/10 bg-white/[0.03] p-5 flex items-start gap-4">
+      <div className="flex items-center justify-center size-10 border border-white/10 shrink-0">
+        <Icon className="size-4 text-white/50" />
+      </div>
+      <div>
+        <p className="font-serif text-2xl tracking-tight leading-none">{value}</p>
+        <p className="text-xs uppercase tracking-widest text-white/40 font-sans mt-1.5">
+          {label}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ── Dashboard ── */
+
+function Dashboard() {
+  const { logout } = useAuth()
+  const router = useRouter()
+
+  const { data: courses } = useContent("courses", fallbackCourses)
+  const { data: sheetMusic } = useContent("sheet_music", fallbackSheetMusic)
+  const { data: bonusMaterial } = useContent("bonus_material", fallbackBonusMaterial)
+  const { data: behindTheScenes } = useContent("bts_clips", fallbackBehindTheScenes)
+  const { data: tourDates } = useContent("tour_dates", fallbackTourDates)
+
+  function handleLogout() {
+    logout()
+    router.push("/")
+  }
+
+  return (
+    <main className="min-h-screen bg-[#050505] text-white">
+      <div className="max-w-6xl mx-auto px-6 py-12 lg:py-16">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+          <div>
+            <p className="font-sans text-xs uppercase tracking-[0.3em] text-white/40 mb-3">
+              Your Dashboard
+            </p>
+            <h1 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none">
+              The Lifetime Vault
+            </h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-white/40 hover:text-white font-sans text-xs uppercase tracking-widest transition-colors self-start sm:self-auto"
+          >
+            <LogOut className="size-3.5" />
+            Log Out
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+          <StatCard
+            label="Total Courses"
+            value={`${courses.length}`}
+            icon={BookOpen}
+          />
+          <StatCard
+            label="Pieces Available"
+            value={`${sheetMusic.length}`}
+            icon={Music}
+          />
+          <StatCard
+            label="Bonus Resources"
+            value={`${bonusMaterial.length}`}
+            icon={Dumbbell}
           />
         </div>
 
-        <div className="bg-[#050505] border border-white/10 p-8 md:p-10">
-          <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-medium text-white/50 mb-4">
-            The Founder{"'"}s Pass
-          </p>
+        {/* Tabs */}
+        <Tabs defaultValue="courses">
+          <TabsList className="bg-white/5 border border-white/10 rounded-none h-11 w-full sm:w-auto flex-wrap">
+            <TabsTrigger
+              value="courses"
+              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
+            >
+              <Video className="size-4" />
+              Courses
+            </TabsTrigger>
+            <TabsTrigger
+              value="sheet-music"
+              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
+            >
+              <Music className="size-4" />
+              Sheet Music
+            </TabsTrigger>
+            <TabsTrigger
+              value="bonus"
+              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
+            >
+              <Dumbbell className="size-4" />
+              Bonus
+            </TabsTrigger>
+            <TabsTrigger
+              value="behind-the-scenes"
+              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
+            >
+              <Film className="size-4" />
+              BTS
+            </TabsTrigger>
+            <TabsTrigger
+              value="tour"
+              className="rounded-none text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:border-transparent"
+            >
+              <MapPin className="size-4" />
+              Tour
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="flex items-baseline gap-4 mb-2">
-            <span className="font-serif text-6xl tracking-tight leading-none">
-              $147
+          {/* ── Courses ── */}
+          <TabsContent value="courses" className="mt-8">
+            <div className="flex flex-col gap-4">
+              {courses.map((course, index) => (
+                <div
+                  key={course.id || course.title}
+                  className="border border-white/10 bg-white/[0.03] overflow-hidden hover:bg-white/[0.06] transition-colors group"
+                >
+                  <div className="flex flex-col lg:flex-row">
+                    {/* Image */}
+                    {(course.image_url) && (
+                      <div className="relative w-full lg:w-56 aspect-video lg:aspect-auto shrink-0 overflow-hidden">
+                        <Image
+                          src={course.image_url}
+                          alt={course.title}
+                          fill
+                          className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                          {...(index === 0 ? { priority: true, loading: "eager" as const } : {})}
+                        />
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    <div className="flex-1 p-6 lg:p-8 flex flex-col justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-serif text-xl lg:text-2xl tracking-tight">
+                            {course.title}
+                          </h3>
+                        </div>
+                        <p className="font-sans text-white/50 text-sm leading-relaxed max-w-lg">
+                          {course.description}
+                        </p>
+                        <div className="flex gap-4 mt-3">
+                          <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
+                            {course.lessons_count}
+                          </span>
+                          <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
+                            {course.duration}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <button className="flex items-center gap-2 bg-white text-black font-sans text-xs uppercase tracking-[0.15em] font-bold px-5 py-2.5 hover:bg-white/90 transition-colors shrink-0">
+                          <Play className="size-3" />
+                          Start Course
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ── Sheet Music ── */}
+          <TabsContent value="sheet-music" className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sheetMusic.map((piece) => (
+                <div
+                  key={piece.id || piece.title}
+                  className="border border-white/10 bg-white/[0.03] p-5 flex items-start justify-between gap-4 hover:bg-white/[0.06] transition-colors"
+                >
+                  <div className="flex gap-3 min-w-0">
+                    <FileText
+                      className="size-5 text-white/40 shrink-0 mt-0.5"
+                      strokeWidth={1.5}
+                    />
+                    <div className="min-w-0">
+                      <h3 className="font-sans text-sm text-white truncate">
+                        {piece.title}
+                      </h3>
+                      <div className="flex gap-3 mt-1">
+                        <span className="text-xs text-white/40 font-sans">
+                          {piece.pages} pages
+                        </span>
+                        <span
+                          className={`text-xs font-sans ${piece.difficulty === "Advanced"
+                            ? "text-white/70"
+                            : piece.difficulty === "Intermediate"
+                              ? "text-white/50"
+                              : "text-white/35"
+                            }`}
+                        >
+                          {piece.difficulty}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {piece.pdf_url ? (
+                    <a
+                      href={piece.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors shrink-0 border border-white/15 px-3 py-1.5 hover:border-white/30"
+                    >
+                      <Download className="size-3" />
+                      PDF
+                    </a>
+                  ) : (
+                    <button className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors shrink-0 border border-white/15 px-3 py-1.5 hover:border-white/30">
+                      <Download className="size-3" />
+                      PDF
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ── Bonus Material ── */}
+          <TabsContent value="bonus" className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bonusMaterial.map((item) => (
+                <div
+                  key={item.id || item.title}
+                  className="border border-white/10 bg-white/[0.03] p-6 flex flex-col hover:bg-white/[0.06] transition-colors"
+                >
+                  <span className="text-[10px] uppercase tracking-widest text-white/40 font-sans mb-3">
+                    {item.type}
+                  </span>
+                  <h3 className="font-serif text-lg tracking-tight mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="font-sans text-white/50 text-sm leading-relaxed flex-1">
+                    {item.description}
+                  </p>
+                  <button className="mt-4 flex items-center gap-2 text-white/70 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors self-start border border-white/15 px-3 py-1.5 hover:border-white/30">
+                    Access
+                  </button>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ── Behind the Scenes ── */}
+          <TabsContent value="behind-the-scenes" className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {behindTheScenes.map((clip) => (
+                <div
+                  key={clip.id || clip.title}
+                  className="border border-white/10 bg-white/[0.03] p-6 flex flex-col hover:bg-white/[0.06] transition-colors group"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <Film className="size-5 text-white/30 shrink-0 mt-0.5" strokeWidth={1.5} />
+                    <span className="text-xs text-white/40 font-sans shrink-0">{clip.duration}</span>
+                  </div>
+                  <h3 className="font-serif text-lg tracking-tight mb-2">
+                    {clip.title}
+                  </h3>
+                  <p className="font-sans text-white/50 text-sm leading-relaxed flex-1">
+                    {clip.description}
+                  </p>
+                  <button className="mt-4 flex items-center gap-2 text-white/70 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors self-start border border-white/15 px-3 py-1.5 hover:border-white/30 group-hover:border-white/30 group-hover:text-white">
+                    <Play className="size-3" />
+                    Watch
+                  </button>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ── Concert Tour ── */}
+          <TabsContent value="tour" className="mt-8">
+            <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10">
+              {tourDates.map((show) => (
+                <div
+                  key={show.id || `${show.date}-${show.city}`}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between py-5 gap-3"
+                >
+                  <div className="flex items-center gap-3 text-white/70 font-sans text-sm">
+                    <Calendar className="size-4 shrink-0 text-white/40" strokeWidth={1.5} />
+                    <span className="w-28">{show.date}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <MapPin className="size-4 shrink-0 text-white/40" strokeWidth={1.5} />
+                    <span className="font-sans text-white">{show.city}</span>
+                    <span className="text-white/40 font-sans text-sm truncate">
+                      {show.venue}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`text-xs uppercase tracking-widest font-sans px-3 py-1 border shrink-0 ${show.status === "Sold Out"
+                      ? "border-white/10 text-white/30"
+                      : show.status === "Coming Soon"
+                        ? "border-white/15 text-white/50"
+                        : "border-white/30 text-white"
+                      }`}
+                  >
+                    {show.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </main>
+  )
+}
+
+/* ── Page ── */
+
+export default function LoginPage() {
+  const { isLoggedIn, isReady } = useAuth()
+
+  if (!isReady) {
+    return (
+      <main className="min-h-screen bg-[#050505]" />
+    )
+  }
+
+  return isLoggedIn ? <Dashboard /> : <LoginForm />
+}
+</file>
+
+<file path="app/globals.css">
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Luxury accent palette */
+  --gold: #c9a84c;
+  --gold-light: #e2c97e;
+  --gold-dim: #a08339;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), 'Playfair Display', ui-serif, Georgia, serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dim: var(--gold-dim);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ─── Scroll-triggered reveal animation ─── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-reveal {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Subtle float for hero elements ─── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ─── Shimmer for CTA buttons ─── */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.btn-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ─── Gold gradient text ─── */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Gradient border utility ─── */
+.border-gradient {
+  position: relative;
+}
+.border-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.4), rgba(255,255,255,0.06), rgba(201, 168, 76, 0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Horizontal rule with gold center ─── */
+.divider-gold {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: 0.3;
+}
+</file>
+
+<file path="app/page.tsx">
+import { StickyBanner } from "@/components/sticky-banner"
+import { HeroSection } from "@/components/hero-section"
+import { LetterSection } from "@/components/letter-section"
+import { VaultContents } from "@/components/vault-contents"
+import { BonusMaterialSection } from "@/components/bonus-material-section"
+import { ConcertTourSection } from "@/components/concert-tour-section"
+import { BehindTheScenesSection } from "@/components/behind-the-scenes-section"
+import { PricingSection } from "@/components/pricing-section"
+import { FaqSection } from "@/components/faq-section"
+import { Footer } from "@/components/footer"
+
+export default function Page() {
+  return (
+    <main>
+      <StickyBanner />
+      <HeroSection />
+      <LetterSection />
+      <VaultContents />
+      <BonusMaterialSection />
+      <ConcertTourSection />
+      <BehindTheScenesSection />
+      <PricingSection />
+      <FaqSection />
+      <Footer />
+    </main>
+  )
+}
+</file>
+
+<file path="components/behind-the-scenes-section.tsx">
+"use client"
+
+import Image from "next/image"
+import { MembersOnlyGate } from "@/components/members-only-gate"
+import { Play } from "lucide-react"
+
+const clips = [
+  {
+    title: "Recording Session: Chopin Ballade No. 1",
+    description: "A raw, unedited look at the recording process behind the flagship course.",
+    image: "/images/recording-session-chopin.jpg",
+  },
+  {
+    title: "Studio Tour",
+    description: "Walk through the home studio setup, gear choices, and acoustic treatment.",
+    image: "/images/studio-tour.jpg",
+  },
+  {
+    title: "Rehearsal: Liszt La Campanella",
+    description: "Watch the full rehearsal process from sight-reading to performance-ready.",
+    image: "/images/rehearsal-liszt.jpg",
+  },
+  {
+    title: "DreamPlay One: Prototype Testing",
+    description: "Behind-the-scenes footage of testing the custom-sized keyboard prototype.",
+    image: "/images/dreamplay-one-prototype.jpg",
+  },
+]
+
+export function BehindTheScenesSection() {
+  return (
+    <section className="bg-[#0a0a0f] text-white border-t border-white/[0.06]">
+      <MembersOnlyGate>
+        <div className="max-w-6xl mx-auto px-6 py-28">
+          <div className="text-center mb-16">
+            <div className="flex justify-center mb-6">
+              <div className="w-px h-10 bg-gradient-to-b from-transparent to-[var(--gold)]/30" />
+            </div>
+            <span className="uppercase tracking-[0.2em] text-[10px] border border-[var(--gold)]/30 px-4 py-1.5 inline-block text-[var(--gold)] font-sans mb-6">
+              Members Exclusive
             </span>
-            <span className="text-white/40 line-through text-sm font-sans">
-              Total Real World Value: $520.00+
-            </span>
+            <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
+              Behind the Scenes
+            </h2>
+            <p className="text-white/40 font-sans mt-5 max-w-lg mx-auto text-pretty">
+              Exclusive footage from recording sessions, rehearsals, and the making of the DreamPlay One.
+            </p>
           </div>
 
-          <p className="text-white/60 text-sm font-sans mb-8">
-            One-time payment. Lifetime access.
-          </p>
-
-          <div className="border-b border-white/10 mb-8" />
-
-          <ul className="space-y-4 mb-10">
-            {bullets.map((item) => (
-              <li
-                key={item}
-                className="flex items-center gap-3 text-white/80 font-sans"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {clips.map((clip) => (
+              <div
+                key={clip.title}
+                className="group border border-white/[0.06] bg-white/[0.02] overflow-hidden hover:border-[var(--gold)]/20 transition-all duration-500"
               >
-                <Check className="size-4 shrink-0" strokeWidth={2} />
-                <span>{item}</span>
-              </li>
+                <div className="relative aspect-video overflow-hidden">
+                  <Image
+                    src={clip.image}
+                    alt={clip.title}
+                    fill
+                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                    <div className="flex items-center justify-center size-16 rounded-full border border-[var(--gold)]/40 bg-black/60 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                      <Play className="size-6 text-[var(--gold)] ml-0.5" fill="var(--gold)" />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="font-serif text-xl tracking-tight mb-2 group-hover:text-[var(--gold)] transition-colors duration-300">
+                    {clip.title}
+                  </h3>
+                  <p className="font-sans text-white/40 text-sm leading-relaxed">
+                    {clip.description}
+                  </p>
+                </div>
+              </div>
             ))}
-          </ul>
-
-          <a
-            href="#"
-            className="block w-full bg-white text-black text-center font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-bold px-8 py-5 rounded-none hover:bg-white/90 transition-colors"
-          >
-            Get Instant Access
-          </a>
+          </div>
         </div>
-      </div>
-
-      <p className="text-white/40 mt-12 text-center text-sm font-sans">
-        Warning: This offer will be taken down permanently next week.
-      </p>
+      </MembersOnlyGate>
     </section>
   )
 }
 </file>
 
-<file path="components/hero-section.tsx">
-import { Lock } from "lucide-react"
+<file path="components/bonus-material-section.tsx">
+"use client"
 
-export function HeroSection() {
+import Image from "next/image"
+import { MembersOnlyGate } from "@/components/members-only-gate"
+
+const items = [
+  {
+    title: "Warm-Up Routines",
+    description:
+      "A curated set of daily warm-up exercises designed to build finger independence, strengthen hand posture, and prepare you for demanding repertoire.",
+    image: "/images/hands-warmup-bw.jpg",
+    imageAlt: "Hands warming up on piano keys",
+  },
+  {
+    title: "Advanced Technique Breakdowns",
+    description:
+      "In-depth video walkthroughs of advanced techniques including trills, octave runs, legato pedalling, and voicing in dense chordal passages.",
+    image: "/images/advanced-technique-bw.jpg",
+    imageAlt: "Overhead view of hands playing piano keys in black and white",
+  },
+]
+
+export function BonusMaterialSection() {
   return (
-    <section className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-32 text-center text-white overflow-hidden">
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        src="https://pub-5362e8f7fec4465dbabad7d613891569.r2.dev/Version%20for%20MusicalBio%20copy.mp4"
-      />
-      <div className="absolute inset-0 bg-black/75" />
+    <section className="bg-[#0a0a0f] text-white">
+      <MembersOnlyGate>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="pt-28 pb-6 text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-px h-10 bg-gradient-to-b from-transparent to-[var(--gold)]/30" />
+            </div>
+            <span className="uppercase tracking-[0.2em] text-[10px] border border-[var(--gold)]/30 px-4 py-1.5 inline-block text-[var(--gold)] font-sans mb-6">
+              Members Exclusive
+            </span>
+            <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
+              Bonus Material
+            </h2>
+          </div>
+        </div>
 
-      <div className="relative z-10 flex flex-col items-center">
-        <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-medium text-white/50 mb-8">
-          A Farewell to the Early Days
+        {items.map((item, i) => {
+          const imageFirst = i % 2 === 0
+
+          const imageBlock = (
+            <div className="relative aspect-[4/3] w-full overflow-hidden group">
+              <Image
+                src={item.image}
+                alt={item.imageAlt}
+                fill
+                className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+              />
+            </div>
+          )
+
+          const textBlock = (
+            <div className="flex flex-col justify-center px-6 lg:px-16 py-12 lg:py-0">
+              <div className="w-12 h-px bg-[var(--gold)]/30 mb-8" />
+              <h3 className="font-serif text-3xl lg:text-4xl tracking-tight leading-tight mb-6 text-balance">
+                {item.title}
+              </h3>
+              <p className="font-sans text-white/50 text-base lg:text-lg leading-relaxed max-w-md">
+                {item.description}
+              </p>
+            </div>
+          )
+
+          return (
+            <div
+              key={item.title}
+              className="grid md:grid-cols-2 gap-0 max-w-6xl mx-auto items-center py-12 md:py-0 border-t border-white/[0.06]"
+            >
+              {imageFirst ? (
+                <>
+                  {imageBlock}
+                  {textBlock}
+                </>
+              ) : (
+                <>
+                  <div className="order-2 md:order-1">{textBlock}</div>
+                  <div className="order-1 md:order-2">{imageBlock}</div>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </MembersOnlyGate>
+    </section>
+  )
+}
+</file>
+
+<file path="components/concert-tour-section.tsx">
+"use client"
+
+import { MembersOnlyGate } from "@/components/members-only-gate"
+import { MapPin, Calendar } from "lucide-react"
+
+const tourDates = [
+  { date: "Mar 15, 2026", city: "Los Angeles", venue: "The Wiltern", status: "On Sale" },
+  { date: "Mar 22, 2026", city: "San Francisco", venue: "Davies Symphony Hall", status: "On Sale" },
+  { date: "Apr 5, 2026", city: "New York", venue: "Carnegie Hall", status: "Sold Out" },
+  { date: "Apr 12, 2026", city: "Chicago", venue: "Orchestra Hall", status: "On Sale" },
+  { date: "Apr 26, 2026", city: "London", venue: "Wigmore Hall", status: "Coming Soon" },
+  { date: "May 10, 2026", city: "Tokyo", venue: "Suntory Hall", status: "Coming Soon" },
+]
+
+export function ConcertTourSection() {
+  return (
+    <section className="bg-[#050505] text-white border-t border-white/[0.06]">
+      <MembersOnlyGate>
+        <div className="max-w-4xl mx-auto px-6 py-28">
+          <div className="text-center mb-16">
+            <div className="flex justify-center mb-6">
+              <div className="w-px h-10 bg-gradient-to-b from-transparent to-[var(--gold)]/30" />
+            </div>
+            <span className="uppercase tracking-[0.2em] text-[10px] border border-[var(--gold)]/30 px-4 py-1.5 inline-block text-[var(--gold)] font-sans mb-6">
+              Members Exclusive
+            </span>
+            <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
+              Concert Tour 2026
+            </h2>
+            <p className="text-white/40 font-sans mt-5 max-w-lg mx-auto text-pretty">
+              Get early access to concert dates and exclusive pre-sale tickets as a Vault member.
+            </p>
+          </div>
+
+          <div className="flex flex-col divide-y divide-white/[0.06] border-t border-b border-white/[0.06]">
+            {tourDates.map((show) => (
+              <div
+                key={`${show.date}-${show.city}`}
+                className="flex flex-col sm:flex-row sm:items-center justify-between py-6 gap-3 hover:bg-white/[0.02] transition-colors px-4 -mx-4"
+              >
+                <div className="flex items-center gap-3 text-white/60 font-sans text-sm">
+                  <Calendar className="size-4 shrink-0 text-[var(--gold)]/40" strokeWidth={1.5} />
+                  <span className="w-28">{show.date}</span>
+                </div>
+
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <MapPin className="size-4 shrink-0 text-[var(--gold)]/40" strokeWidth={1.5} />
+                  <span className="font-sans text-white">
+                    {show.city}
+                  </span>
+                  <span className="text-white/30 font-sans text-sm truncate">
+                    {show.venue}
+                  </span>
+                </div>
+
+                <span
+                  className={`text-[10px] uppercase tracking-[0.2em] font-sans px-3 py-1.5 border shrink-0 ${show.status === "Sold Out"
+                      ? "border-white/10 text-white/25"
+                      : show.status === "Coming Soon"
+                        ? "border-white/10 text-white/40"
+                        : "border-[var(--gold)]/30 text-[var(--gold)]"
+                    }`}
+                >
+                  {show.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </MembersOnlyGate>
+    </section>
+  )
+}
+</file>
+
+<file path="components/faq-section.tsx">
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
+const faqs = [
+  {
+    q: "Is this really a one-time fee?",
+    a: "Yes. No subscriptions. You pay $147 once and own the content forever.",
+  },
+  {
+    q: "How do I access the files?",
+    a: "Immediately after checkout, you will be securely redirected to the private Vault folder to download your PDFs and access your private video links.",
+  },
+  {
+    q: "I\u2019m already a monthly subscriber, what should I do?",
+    a: "Nothing! You are grandfathered into your current rate forever as long as you don\u2019t cancel. This vault is for people who want to own everything upfront without a subscription.",
+  },
+  {
+    q: "What if I\u2019m not satisfied?",
+    a: "We offer a 30-day no-questions-asked refund policy. If the Vault isn\u2019t right for you, just email us within 30 days and we\u2019ll issue a full refund.",
+  },
+  {
+    q: "Will future content be included?",
+    a: "Yes. Every new course, sheet music release, and bonus material will be added to your Vault automatically at no additional cost. Lifetime means lifetime.",
+  },
+]
+
+export function FaqSection() {
+  return (
+    <section className="relative bg-[#0a0a0f] text-white py-28 md:py-36 px-6 overflow-hidden">
+      {/* Subtle ambient glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] rounded-full bg-[var(--gold)]/[0.03] blur-[100px] pointer-events-none" />
+
+      <div className="max-w-3xl mx-auto relative">
+        <div className="text-center mb-16">
+          <div className="flex justify-center mb-6">
+            <div className="w-px h-10 bg-gradient-to-b from-transparent to-[var(--gold)]/30" />
+          </div>
+          <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] text-[var(--gold)]/60 mb-4">
+            Questions
+          </p>
+          <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
+            Frequently Asked Questions
+          </h2>
+        </div>
+
+        <Accordion type="single" collapsible className="w-full">
+          {faqs.map((faq, i) => (
+            <AccordionItem
+              key={i}
+              value={`item-${i}`}
+              className="border-b border-white/[0.06] last:border-b-0"
+            >
+              <AccordionTrigger className="font-sans text-base text-white/80 hover:text-[var(--gold)] hover:no-underline py-7 transition-colors">
+                {faq.q}
+              </AccordionTrigger>
+              <AccordionContent className="font-sans text-white/50 leading-relaxed text-base pb-7">
+                {faq.a}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+
+        {/* Bottom CTA */}
+        <div className="text-center mt-16 pt-16 border-t border-white/[0.06]">
+          <p className="font-sans text-white/40 text-sm mb-6">
+            Still have questions? We{"'"}re here to help.
+          </p>
+          <a
+            href="mailto:hello@musicalbasics.com"
+            className="inline-block font-sans text-xs uppercase tracking-[0.2em] text-[var(--gold)] border border-[var(--gold)]/30 px-6 py-3 hover:bg-[var(--gold)]/10 hover:border-[var(--gold)]/50 transition-all duration-300"
+          >
+            Contact Us
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "my-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
+    "@radix-ui/react-accordion": "1.2.12",
+    "@radix-ui/react-alert-dialog": "1.1.15",
+    "@radix-ui/react-aspect-ratio": "1.1.8",
+    "@radix-ui/react-avatar": "1.1.11",
+    "@radix-ui/react-checkbox": "1.3.3",
+    "@radix-ui/react-collapsible": "1.1.12",
+    "@radix-ui/react-context-menu": "2.2.16",
+    "@radix-ui/react-dialog": "1.1.15",
+    "@radix-ui/react-dropdown-menu": "2.1.16",
+    "@radix-ui/react-hover-card": "1.1.15",
+    "@radix-ui/react-label": "2.1.8",
+    "@radix-ui/react-menubar": "1.1.16",
+    "@radix-ui/react-navigation-menu": "1.2.14",
+    "@radix-ui/react-popover": "1.1.15",
+    "@radix-ui/react-progress": "1.1.8",
+    "@radix-ui/react-radio-group": "1.3.8",
+    "@radix-ui/react-scroll-area": "1.2.10",
+    "@radix-ui/react-select": "2.2.6",
+    "@radix-ui/react-separator": "1.1.8",
+    "@radix-ui/react-slider": "1.3.6",
+    "@radix-ui/react-slot": "1.2.4",
+    "@radix-ui/react-switch": "1.2.6",
+    "@radix-ui/react-tabs": "1.1.13",
+    "@radix-ui/react-toast": "1.2.15",
+    "@radix-ui/react-toggle": "1.1.10",
+    "@radix-ui/react-toggle-group": "1.1.11",
+    "@radix-ui/react-tooltip": "1.2.8",
+    "@supabase/supabase-js": "^2.97.0",
+    "@vercel/analytics": "1.6.1",
+    "autoprefixer": "^10.4.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "4.1.0",
+    "embla-carousel-react": "8.6.0",
+    "input-otp": "1.4.2",
+    "lucide-react": "^0.564.0",
+    "next": "16.1.4",
+    "next-themes": "^0.4.6",
+    "react": "19.2.4",
+    "react-day-picker": "9.13.2",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.54.1",
+    "react-resizable-panels": "^2.1.7",
+    "recharts": "2.15.0",
+    "sonner": "^1.7.1",
+    "stripe": "^20.3.1",
+    "tailwind-merge": "^3.3.1",
+    "vaul": "^1.1.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^22",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "postcss": "^8.5",
+    "tailwindcss": "^4.1.9",
+    "tw-animate-css": "1.3.3",
+    "typescript": "5.7.3"
+  }
+}
+</file>
+
+<file path="components/letter-section.tsx">
+import Image from "next/image"
+
+export function LetterSection() {
+  return (
+    <section className="bg-[#050505] text-white py-32 px-6 border-t border-white/5 relative overflow-hidden">
+      {/* Subtle background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="grid lg:grid-cols-[1fr_1.2fr] gap-16 lg:gap-24 max-w-6xl mx-auto items-center relative z-10">
+
+        {/* Editorial Image Framing */}
+        <div className="relative w-full aspect-[3/4] p-3 sm:p-5 border border-white/10 group">
+          <div className="relative w-full h-full overflow-hidden bg-[#0A0A0A]">
+            <Image
+              src="/images/early-days.jpg"
+              alt="Lionel Yu Piano keys early days"
+              fill
+              className="object-cover grayscale contrast-125 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1.5s] ease-out"
+              priority
+              loading="eager"
+            />
+            {/* Inner shadow overlay for depth */}
+            <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none" />
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center">
+          <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-[1.1] mb-12 text-balance">
+            An end to the <span className="italic text-[#D4AF37]">{"\u201C"}early days{"\u201D"}</span>.
+          </h2>
+
+          <div className="space-y-8 text-lg font-sans text-white/70 leading-relaxed font-light">
+            <p>
+              <span className="float-left text-6xl font-serif leading-[0.8] pr-3 text-white">H</span>
+              i everyone, it{"'"}s Lionel. For the last two years, I{"'"}ve been pouring my life savings into
+              building the DreamPlay One{"\u2014"}a professional piano keyboard
+              designed for hands that don{"'"}t fit the standard size.
+            </p>
+
+            <p>
+              We are finally entering the manufacturing phase. Because my time
+              is now completely consumed by bringing this physical instrument to
+              life, I am officially restructuring my digital teaching academy.
+            </p>
+
+            <p>
+              Starting next Monday, my private lessons are moving to <strong className="text-white font-normal">$80</strong>, and
+              my Lifetime Piano Course is graduating from its beta price to <strong className="text-white font-normal">$320</strong>.
+            </p>
+
+            <p>
+              But to help fund the final manufacturing costs of the piano
+              {"\u2014"}and to say thank you to the people who have supported my
+              music for years{"\u2014"}I am doing something I{"'"}ve never done
+              before. I am opening the Lifetime Vault.
+            </p>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-white/10 flex items-center gap-6">
+            <div className="size-14 rounded-full border border-white/20 overflow-hidden relative shrink-0">
+              <Image src="/images/pianist-bw.jpg" alt="Lionel" fill className="object-cover grayscale" />
+            </div>
+            <div>
+              <p className="font-serif italic text-white text-xl">Lionel Yu</p>
+              <p className="text-[10px] font-sans tracking-[0.2em] text-[#D4AF37] uppercase mt-1">Founder & Pianist</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+</file>
+
+<file path="components/sticky-banner.tsx">
+"use client"
+
+import { useState } from "react"
+import { X } from "lucide-react"
+
+export function StickyBanner() {
+  const [visible, setVisible] = useState(true)
+
+  if (!visible) return null
+
+  return (
+    <div className="bg-[#111111] border-b border-white/5 text-white py-2.5 px-4 relative z-50">
+      <div className="flex items-center justify-center gap-3">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500/80 animate-pulse hidden sm:block" />
+        <p className="font-sans text-[9px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.3em] font-medium text-white/80">
+          Strictly Limited: Closing Permanently Next Friday at Midnight
         </p>
+      </div>
+      <button
+        onClick={() => setVisible(false)}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+        aria-label="Dismiss banner"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
+  )
+}
+</file>
 
-        <h1 className="font-serif tracking-tight leading-none text-5xl md:text-6xl lg:text-7xl max-w-4xl text-balance">
-          The Musical Basics
-          <br />
-          Lifetime Vault.
-        </h1>
+<file path="components/vault-contents.tsx">
+import Image from "next/image"
 
-        <p className="font-sans text-white/60 max-w-2xl mx-auto mt-6 text-lg md:text-xl leading-relaxed text-pretty">
-          Before my teaching academy graduates to premium retail pricing, get
-          lifetime access to every course and piece of sheet music I{"'"}ve ever
-          created for one final price.
-        </p>
+const rows = [
+  {
+    title: "The Complete Piano Course",
+    value: "$320 Value",
+    body: "My flagship masterclass system. Learn the exact techniques I use to tackle the hardest romantic repertoire. From foundation to virtuosity.",
+    image: "/images/piano-hands-bw.jpg",
+    imageAlt: "Pianist hands playing grand piano in black and white",
+  },
+  {
+    title: "The Sheet Music Archive",
+    value: "$200+ Value",
+    body: "Every single piece of sheet music I have ever written, transcribed, or arranged. High-quality editorial PDFs ready to print, study, and play.",
+    image: "/images/sheet-music-piano.jpg",
+    imageAlt: "Sheet music book open on piano music stand",
+  },
+  {
+    title: "Future Updates Included",
+    value: "Priceless",
+    body: "Whenever I release new sheet music or add new masterclasses to the academy, you get it automatically. No monthly fees, no hidden costs.",
+    image: "/images/pianist-bw.jpg",
+    imageAlt: "Pianist seated at grand piano in black and white",
+  },
+]
 
-        <a
-          href="#pricing"
-          className="mt-10 inline-block bg-white text-black font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-bold px-8 py-4 rounded-none hover:bg-white/90 transition-colors"
-        >
-          {"UNLOCK THE VAULT \u2014 $147"}
-        </a>
+export function VaultContents() {
+  return (
+    <section className="bg-[#050505] text-white py-32 relative border-t border-white/5">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="text-center mb-24">
+          <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium text-white/50 mb-4">
+            The Collection
+          </p>
+          <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
+            Inside the Vault.
+          </h2>
+        </div>
 
-        <p className="mt-6 flex items-center gap-2 text-white/40 text-sm font-sans">
-          <Lock className="size-3.5" />
-          <span>
-            Secure checkout via Stripe. One-time payment. Yours forever.
-          </span>
-        </p>
+        <div className="space-y-32">
+          {rows.map((row, i) => {
+            const imageFirst = i % 2 === 0
+
+            const imageBlock = (
+              <div key={`img-${i}`} className="relative aspect-[4/3] w-full overflow-hidden border border-white/5 shadow-2xl group cursor-default">
+                <Image
+                  src={row.image}
+                  alt={row.imageAlt}
+                  fill
+                  className="object-cover grayscale opacity-80 transition-all duration-[1.5s] ease-out group-hover:scale-105 group-hover:opacity-100 group-hover:grayscale-0"
+                  {...(i === 0 ? { priority: true, loading: "eager" as const } : {})}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-50 transition-opacity duration-700 group-hover:opacity-20" />
+              </div>
+            )
+
+            const textBlock = (
+              <div key={`txt-${i}`} className="flex flex-col justify-center px-0 md:px-12 lg:px-16 mt-8 md:mt-0">
+                <span className="uppercase tracking-[0.2em] text-[10px] md:text-xs font-bold text-[#D4AF37] border border-[#D4AF37]/30 bg-[#D4AF37]/5 w-fit px-3 py-1 mb-6">
+                  {row.value}
+                </span>
+                <h3 className="font-serif text-3xl md:text-4xl lg:text-5xl tracking-tight leading-[1.1] mb-6 text-balance">
+                  {row.title}
+                </h3>
+                <p className="font-sans text-white/60 text-base md:text-lg leading-relaxed font-light">
+                  {row.body}
+                </p>
+              </div>
+            )
+
+            return (
+              <div key={row.title} className="grid md:grid-cols-2 gap-8 md:gap-0 items-center">
+                {imageFirst ? (
+                  <>
+                    <div className="order-1">{imageBlock}</div>
+                    <div className="order-2">{textBlock}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="order-2 md:order-1">{textBlock}</div>
+                    <div className="order-1 md:order-2">{imageBlock}</div>
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </section>
   )
@@ -9244,58 +10225,236 @@ export function Navbar() {
   const { isLoggedIn, logout } = useAuth()
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#050505]/95 backdrop-blur-sm border-b border-white/10">
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-6 h-14">
-        <Link href="/" className="flex items-center">
+    <nav className="sticky top-0 z-50 bg-[#050505]/70 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+      <div className="max-w-6xl mx-auto flex items-center justify-between px-6 h-16">
+        <Link href="/" className="flex items-center opacity-90 hover:opacity-100 transition-opacity">
           <Image
-            src="/images/musical basics logo-02 2.png"
+            src="/images/musical%20basics%20logo-02%202.png"
             alt="Musical Basics"
             width={140}
             height={36}
-            className="h-8 w-auto object-contain"
+            className="h-7 w-auto object-contain"
             priority
           />
         </Link>
 
-        <div className="flex items-center gap-6">
-          <Link
-            href="/"
-            className="font-sans text-sm text-white/70 hover:text-white transition-colors"
-          >
+        <div className="flex items-center gap-6 md:gap-8">
+          <Link href="/" className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/60 hover:text-[#D4AF37] transition-colors">
             Home
           </Link>
-          <Link
-            href="/policies"
-            className="font-sans text-sm text-white/70 hover:text-white transition-colors"
-          >
+          <Link href="/policies" className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/60 hover:text-[#D4AF37] transition-colors">
             Policies
           </Link>
           {isLoggedIn ? (
             <>
-              <Link
-                href="/login"
-                className="font-sans text-sm text-white/70 hover:text-white transition-colors"
-              >
+              <Link href="/login" className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-[#D4AF37] hover:text-white transition-colors">
                 Dashboard
               </Link>
-              <button
-                onClick={logout}
-                className="font-sans text-sm text-white/40 hover:text-white transition-colors"
-              >
+              <button onClick={logout} className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
                 Log Out
               </button>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="font-sans text-sm text-white/70 hover:text-white transition-colors"
-            >
+            <Link href="/login" className="font-sans text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/60 hover:text-[#D4AF37] transition-colors">
               Log In
             </Link>
           )}
         </div>
       </div>
     </nav>
+  )
+}
+</file>
+
+<file path="components/hero-section.tsx">
+import { Lock, ArrowRight } from "lucide-react"
+
+export function HeroSection() {
+  return (
+    <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 py-32 text-center text-white overflow-hidden">
+      {/* Background Video with Cinematic Gradients */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity scale-105"
+        src="https://pub-5362e8f7fec4465dbabad7d613891569.r2.dev/Version%20for%20MusicalBio%20copy.mp4"
+      />
+      {/* Luxury vignette overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] opacity-90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-transparent to-[#050505]" />
+
+      <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mt-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#D4AF37]" />
+          <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium text-[#D4AF37]">
+            A Farewell to the Early Days
+          </p>
+          <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#D4AF37]" />
+        </div>
+
+        <h1 className="font-serif tracking-tight leading-[1.05] text-5xl md:text-6xl lg:text-7xl text-balance drop-shadow-2xl">
+          The Musical Basics
+          <br />
+          <span className="italic font-light bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
+            Lifetime Vault.
+          </span>
+        </h1>
+
+        <p className="font-sans text-white/60 max-w-2xl mx-auto mt-8 text-lg md:text-xl leading-relaxed text-pretty font-light">
+          Before my teaching academy graduates to premium retail pricing, secure
+          lifetime access to every course and piece of sheet music I{"'"}ve ever
+          created for one final, exclusive price.
+        </p>
+
+        {/* Premium Luxury Button */}
+        <div className="mt-12 relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#D4AF37]/0 via-[#D4AF37]/40 to-[#D4AF37]/0 blur-md opacity-0 group-hover:opacity-100 transition duration-700" />
+          <a
+            href="#pricing"
+            className="relative flex items-center justify-center gap-4 bg-white/5 backdrop-blur-md border border-white/20 text-white font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold px-10 py-5 hover:bg-white hover:text-black transition-all duration-500 ease-out"
+          >
+            Unlock The Vault &mdash; $147
+            <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
+          </a>
+        </div>
+
+        <div className="mt-10 flex items-center justify-center gap-3 text-white/40 text-[10px] md:text-xs font-sans tracking-wide">
+          <Lock className="size-3.5" />
+          <span>Secure checkout via Stripe &bull; One-time payment &bull; Yours forever</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+</file>
+
+<file path="components/pricing-section.tsx">
+"use client"
+
+import { useState } from "react"
+import { Check, ShieldCheck, ArrowRight, Loader2 } from "lucide-react"
+import Image from "next/image"
+
+const bullets = [
+  "The Complete Video Course ($320 Value)",
+  "The Entire Sheet Music Library ($200+ Value)",
+  "All Future Digital Releases Included",
+  "Members-Only Behind the Scenes",
+  "Early Access to Concert Tours"
+]
+
+export function PricingSection() {
+  const [loading, setLoading] = useState(false)
+
+  async function handleCheckout() {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section id="pricing" className="bg-[#050505] text-white py-32 px-6 relative border-t border-white/5">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(212,175,55,0.05)_0%,transparent_50%)] pointer-events-none" />
+
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col items-center mb-16 text-center relative z-10">
+          <span className="uppercase tracking-[0.3em] text-[10px] md:text-xs font-sans text-[#D4AF37] mb-4 block">
+            Limited Time Offer
+          </span>
+          <h2 className="font-serif text-4xl lg:text-6xl tracking-tight leading-none text-balance">
+            Secure Your Legacy Access
+          </h2>
+          <p className="text-white/50 mt-6 max-w-xl mx-auto text-lg font-light">
+            The vault is closing to new lifetime members. Secure your spot before the transition to subscription-only pricing.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-[1.2fr_1fr] items-stretch border border-white/10 rounded-sm overflow-hidden bg-[#0A0A0A] shadow-2xl relative z-10">
+
+          {/* Visual Side */}
+          <div className="relative w-full min-h-[400px] hidden lg:block border-r border-white/5 group">
+            <Image
+              src="/images/piano-hands-bw.jpg"
+              alt="Pianist hands on piano keys"
+              fill
+              className="object-cover grayscale opacity-50 mix-blend-lighten group-hover:scale-105 group-hover:opacity-70 transition-all duration-[2s] ease-out"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0A0A0A]" />
+            <div className="absolute bottom-12 left-12 flex items-start gap-4">
+              <ShieldCheck className="size-8 text-[#D4AF37] shrink-0" strokeWidth={1.5} />
+              <div>
+                <p className="font-serif text-xl leading-tight">Backed by a 30-Day<br />Guarantee.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing Side */}
+          <div className="p-10 md:p-14 relative flex flex-col justify-center">
+            <div className="inline-flex items-center gap-3 mb-8">
+              <div className="size-1.5 bg-[#D4AF37] rounded-full animate-pulse" />
+              <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium text-white/50">
+                The Founder{"'"}s Pass
+              </p>
+            </div>
+
+            <div className="flex flex-col mb-2">
+              <span className="text-white/40 line-through text-sm font-sans tracking-wide mb-2">
+                Total Real World Value: $520.00+
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="font-serif text-6xl md:text-7xl tracking-tight leading-none text-white">
+                  $147
+                </span>
+                <span className="text-white/40 font-sans text-sm uppercase tracking-widest">USD</span>
+              </div>
+            </div>
+
+            <p className="text-white/50 text-sm font-sans mb-10 font-light leading-relaxed">
+              One-time payment. No subscriptions. Yours forever.
+            </p>
+
+            <ul className="space-y-5 mb-12">
+              {bullets.map((item) => (
+                <li key={item} className="flex items-start gap-4 text-white/80 font-sans text-sm md:text-base">
+                  <div className="mt-0.5 bg-white/5 border border-white/10 rounded-full p-1 shrink-0">
+                    <Check className="size-3 text-[#D4AF37]" strokeWidth={2.5} />
+                  </div>
+                  <span className="font-light">{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className="group relative flex items-center justify-center w-full bg-white text-black font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold px-8 py-5 rounded-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:opacity-50"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                {loading ? (
+                  <><Loader2 className="size-4 animate-spin" /> Processing...</>
+                ) : (
+                  <>Get Instant Access <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" /></>
+                )}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <p className="text-white/40 mt-12 text-center text-[11px] font-sans uppercase tracking-widest flex items-center justify-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          Closing permanently next Friday at midnight
+        </p>
+      </div>
+    </section>
   )
 }
 </file>
