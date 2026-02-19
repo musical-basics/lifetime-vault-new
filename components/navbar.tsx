@@ -12,7 +12,7 @@ export function Navbar() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-6 h-14">
         <Link href="/" className="flex items-center">
           <Image
-            src="/images/musical basics logo horitzontal (1).jpg"
+            src="/images/musical basics logo-02 2.png"
             alt="Musical Basics"
             width={140}
             height={36}
