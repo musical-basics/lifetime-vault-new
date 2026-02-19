@@ -25,8 +25,11 @@ export function BonusMaterialSection() {
     <section className="bg-[#0a0a0f] text-white">
       <MembersOnlyGate>
         <div className="max-w-6xl mx-auto px-6">
-          <div className="pt-24 pb-4 text-center">
-            <span className="uppercase tracking-widest text-xs border border-white/20 px-3 py-1 inline-block text-white/60 font-sans mb-6">
+          <div className="pt-28 pb-6 text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-px h-10 bg-gradient-to-b from-transparent to-[var(--gold)]/30" />
+            </div>
+            <span className="uppercase tracking-[0.2em] text-[10px] border border-[var(--gold)]/30 px-4 py-1.5 inline-block text-[var(--gold)] font-sans mb-6">
               Members Exclusive
             </span>
             <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-none text-balance">
@@ -39,22 +42,23 @@ export function BonusMaterialSection() {
           const imageFirst = i % 2 === 0
 
           const imageBlock = (
-            <div className="relative aspect-[4/3] w-full overflow-hidden">
+            <div className="relative aspect-[4/3] w-full overflow-hidden group">
               <Image
                 src={item.image}
                 alt={item.imageAlt}
                 fill
-                className="object-cover grayscale"
+                className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
               />
             </div>
           )
 
           const textBlock = (
-            <div className="flex flex-col justify-center px-6 lg:px-16">
+            <div className="flex flex-col justify-center px-6 lg:px-16 py-12 lg:py-0">
+              <div className="w-12 h-px bg-[var(--gold)]/30 mb-8" />
               <h3 className="font-serif text-3xl lg:text-4xl tracking-tight leading-tight mb-6 text-balance">
                 {item.title}
               </h3>
-              <p className="font-sans text-white/60 text-lg leading-relaxed max-w-md">
+              <p className="font-sans text-white/50 text-base lg:text-lg leading-relaxed max-w-md">
                 {item.description}
               </p>
             </div>
@@ -63,7 +67,7 @@ export function BonusMaterialSection() {
           return (
             <div
               key={item.title}
-              className="grid md:grid-cols-2 gap-0 max-w-6xl mx-auto items-center py-20 border-t border-white/5"
+              className="grid md:grid-cols-2 gap-0 max-w-6xl mx-auto items-center py-12 md:py-0 border-t border-white/[0.06]"
             >
               {imageFirst ? (
                 <>

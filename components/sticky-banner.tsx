@@ -9,13 +9,16 @@ export function StickyBanner() {
   if (!visible) return null
 
   return (
-    <div className="bg-white text-black py-2 px-4 text-center relative">
-      <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-medium">
-        {"Warning: CLOSING NEXT FRIDAY AT MIDNIGHT"}
+    <div className="relative bg-gradient-to-r from-[#0c0a06] via-[#1a1508] to-[#0c0a06] py-2.5 px-4 text-center overflow-hidden">
+      {/* Subtle gold shimmer line */}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--gold)]/30 to-transparent" />
+
+      <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.35em] font-medium text-[var(--gold)]">
+        {"⚠ Warning: Closing Next Friday at Midnight"}
       </p>
       <button
         onClick={() => setVisible(false)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50 hover:text-black transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
         aria-label="Dismiss banner"
       >
         <X className="size-3.5" />

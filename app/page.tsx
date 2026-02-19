@@ -7,6 +7,7 @@ import { ConcertTourSection } from "@/components/concert-tour-section"
 import { BehindTheScenesSection } from "@/components/behind-the-scenes-section"
 import { PricingSection } from "@/components/pricing-section"
 import { FaqSection } from "@/components/faq-section"
+import { Footer } from "@/components/footer"
 
 export default function Page() {
   return (
@@ -20,6 +21,7 @@ export default function Page() {
       <BehindTheScenesSection />
       <PricingSection />
       <FaqSection />
+      <Footer />
     </main>
   )
 }

@@ -1,0 +1,22 @@
+{
+    "output": {
+        "filePath": "repomix-output.xml",
+        "style": "xml"
+    },
+    "ignore": {
+        "customPatterns": [
+            "node_modules",
+            ".next",
+            "public/images",
+            "*.jpg",
+            "*.png",
+            "*.ico",
+            "*.svg",
+            "*.mp4",
+            "*.webm",
+            "pnpm-lock.yaml",
+            ".DS_Store",
+            "repomix-output.*"
+        ]
+    }
+}
