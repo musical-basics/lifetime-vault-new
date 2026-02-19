@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -20,113 +20,90 @@ import {
   ChevronRight,
 } from "lucide-react"
 
-/* ── Data ── */
+/* ── Fallback Data (used when Supabase is empty or unconfigured) ── */
 
-const courses = [
+const fallbackCourses = [
   {
-    title: "The Complete Piano Course",
-    lessons: "42 Lessons",
-    duration: "12+ Hours",
-    description:
-      "Master romantic repertoire with Lionel's flagship system covering technique, interpretation, and performance.",
-    progress: 68,
-    image: "/images/piano-hands-bw.jpg",
+    id: "f1", title: "The Complete Piano Course", lessons_count: "42 Lessons",
+    duration: "12+ Hours", description: "Master romantic repertoire with Lionel's flagship system covering technique, interpretation, and performance.",
+    image_url: "/images/piano-hands-bw.jpg", sort_order: 0,
   },
   {
-    title: "Sight-Reading Accelerator",
-    lessons: "18 Lessons",
-    duration: "5 Hours",
-    description:
-      "Build fluent sight-reading skills from scratch with progressive exercises and real repertoire.",
-    progress: 25,
-    image: "/images/sheet-music-piano.jpg",
+    id: "f2", title: "Sight-Reading Accelerator", lessons_count: "18 Lessons",
+    duration: "5 Hours", description: "Build fluent sight-reading skills from scratch with progressive exercises and real repertoire.",
+    image_url: "/images/sheet-music-piano.jpg", sort_order: 1,
   },
   {
-    title: "Music Theory Foundations",
-    lessons: "24 Lessons",
-    duration: "7 Hours",
-    description:
-      "Understand harmony, chord progressions, and form. Essential knowledge for any serious pianist.",
-    progress: 0,
-    image: "/images/early-days.jpg",
+    id: "f3", title: "Music Theory Foundations", lessons_count: "24 Lessons",
+    duration: "7 Hours", description: "Understand harmony, chord progressions, and form. Essential knowledge for any serious pianist.",
+    image_url: "/images/early-days.jpg", sort_order: 2,
   },
 ]
 
-const sheetMusic = [
-  { title: "Chopin - Ballade No. 1 in G Minor", pages: 14, difficulty: "Advanced" },
-  { title: "Debussy - Clair de Lune", pages: 6, difficulty: "Intermediate" },
-  { title: "Liszt - La Campanella", pages: 12, difficulty: "Advanced" },
-  { title: "Bach - Prelude in C Major", pages: 3, difficulty: "Beginner" },
-  { title: "Rachmaninoff - Prelude in C# Minor", pages: 8, difficulty: "Advanced" },
-  { title: "Satie - Gymnop\u00e9die No. 1", pages: 4, difficulty: "Beginner" },
-  { title: "Beethoven - Moonlight Sonata Mvt. 1", pages: 5, difficulty: "Intermediate" },
-  { title: "Lionel Yu - Original: Stillwater", pages: 6, difficulty: "Intermediate" },
+const fallbackSheetMusic = [
+  { id: "s1", title: "Chopin - Ballade No. 1 in G Minor", pages: 14, difficulty: "Advanced", pdf_url: null as string | null },
+  { id: "s2", title: "Debussy - Clair de Lune", pages: 6, difficulty: "Intermediate", pdf_url: null as string | null },
+  { id: "s3", title: "Liszt - La Campanella", pages: 12, difficulty: "Advanced", pdf_url: null as string | null },
+  { id: "s4", title: "Bach - Prelude in C Major", pages: 3, difficulty: "Beginner", pdf_url: null as string | null },
+  { id: "s5", title: "Rachmaninoff - Prelude in C# Minor", pages: 8, difficulty: "Advanced", pdf_url: null as string | null },
+  { id: "s6", title: "Satie - Gymnop\u00e9die No. 1", pages: 4, difficulty: "Beginner", pdf_url: null as string | null },
+  { id: "s7", title: "Beethoven - Moonlight Sonata Mvt. 1", pages: 5, difficulty: "Intermediate", pdf_url: null as string | null },
+  { id: "s8", title: "Lionel Yu - Original: Stillwater", pages: 6, difficulty: "Intermediate", pdf_url: null as string | null },
 ]
 
-const bonusMaterial = [
-  {
-    title: "Daily Warm-Up Routine",
-    type: "Exercise Set",
-    description: "A 15-minute daily routine covering scales, arpeggios, and finger independence drills.",
-  },
-  {
-    title: "Advanced Trill Technique",
-    type: "Video Breakdown",
-    description: "In-depth tutorial on achieving even, rapid trills across all fingers.",
-  },
-  {
-    title: "Pedalling Masterclass",
-    type: "Video Breakdown",
-    description: "Learn legato, half, and flutter pedalling techniques for expressive playing.",
-  },
-  {
-    title: "Octave Endurance Exercises",
-    type: "Exercise Set",
-    description: "Progressive exercises to build stamina and accuracy in octave passages.",
-  },
-  {
-    title: "Voicing in Chordal Textures",
-    type: "Video Breakdown",
-    description: "How to bring out inner melodies and shape chords for musical phrasing.",
-  },
-  {
-    title: "Performance Anxiety Guide",
-    type: "PDF Guide",
-    description: "Practical strategies and mental frameworks for confident stage performance.",
-  },
+const fallbackBonusMaterial = [
+  { id: "b1", title: "Daily Warm-Up Routine", type: "Exercise Set", description: "A 15-minute daily routine covering scales, arpeggios, and finger independence drills." },
+  { id: "b2", title: "Advanced Trill Technique", type: "Video Breakdown", description: "In-depth tutorial on achieving even, rapid trills across all fingers." },
+  { id: "b3", title: "Pedalling Masterclass", type: "Video Breakdown", description: "Learn legato, half, and flutter pedalling techniques for expressive playing." },
+  { id: "b4", title: "Octave Endurance Exercises", type: "Exercise Set", description: "Progressive exercises to build stamina and accuracy in octave passages." },
+  { id: "b5", title: "Voicing in Chordal Textures", type: "Video Breakdown", description: "How to bring out inner melodies and shape chords for musical phrasing." },
+  { id: "b6", title: "Performance Anxiety Guide", type: "PDF Guide", description: "Practical strategies and mental frameworks for confident stage performance." },
 ]
 
-const behindTheScenes = [
-  {
-    title: "Recording Session: Chopin Ballade No. 1",
-    description: "A raw, unedited look at the recording process behind the flagship course.",
-    duration: "24 min",
-  },
-  {
-    title: "Studio Tour",
-    description: "Walk through the home studio setup, gear choices, and acoustic treatment.",
-    duration: "18 min",
-  },
-  {
-    title: "Rehearsal: Liszt La Campanella",
-    description: "Watch the full rehearsal process from sight-reading to performance-ready.",
-    duration: "32 min",
-  },
-  {
-    title: "DreamPlay One: Prototype Testing",
-    description: "Behind-the-scenes footage of testing the custom-sized keyboard prototype.",
-    duration: "15 min",
-  },
+const fallbackBehindTheScenes = [
+  { id: "bts1", title: "Recording Session: Chopin Ballade No. 1", description: "A raw, unedited look at the recording process behind the flagship course.", duration: "24 min" },
+  { id: "bts2", title: "Studio Tour", description: "Walk through the home studio setup, gear choices, and acoustic treatment.", duration: "18 min" },
+  { id: "bts3", title: "Rehearsal: Liszt La Campanella", description: "Watch the full rehearsal process from sight-reading to performance-ready.", duration: "32 min" },
+  { id: "bts4", title: "DreamPlay One: Prototype Testing", description: "Behind-the-scenes footage of testing the custom-sized keyboard prototype.", duration: "15 min" },
 ]
 
-const tourDates = [
-  { date: "Mar 15, 2026", city: "Los Angeles", venue: "The Wiltern", status: "On Sale" },
-  { date: "Mar 22, 2026", city: "San Francisco", venue: "Davies Symphony Hall", status: "On Sale" },
-  { date: "Apr 5, 2026", city: "New York", venue: "Carnegie Hall", status: "Sold Out" },
-  { date: "Apr 12, 2026", city: "Chicago", venue: "Orchestra Hall", status: "On Sale" },
-  { date: "Apr 26, 2026", city: "London", venue: "Wigmore Hall", status: "Coming Soon" },
-  { date: "May 10, 2026", city: "Tokyo", venue: "Suntory Hall", status: "Coming Soon" },
+const fallbackTourDates = [
+  { id: "t1", date: "Mar 15, 2026", city: "Los Angeles", venue: "The Wiltern", status: "On Sale" },
+  { id: "t2", date: "Mar 22, 2026", city: "San Francisco", venue: "Davies Symphony Hall", status: "On Sale" },
+  { id: "t3", date: "Apr 5, 2026", city: "New York", venue: "Carnegie Hall", status: "Sold Out" },
+  { id: "t4", date: "Apr 12, 2026", city: "Chicago", venue: "Orchestra Hall", status: "On Sale" },
+  { id: "t5", date: "Apr 26, 2026", city: "London", venue: "Wigmore Hall", status: "Coming Soon" },
+  { id: "t6", date: "May 10, 2026", city: "Tokyo", venue: "Suntory Hall", status: "Coming Soon" },
 ]
+
+/* ── Hook to fetch content with fallback ── */
+
+function useContent<T>(table: string, fallback: T[]): { data: T[]; loading: boolean } {
+  const [data, setData] = useState<T[]>(fallback)
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/content/${table}`)
+      if (res.ok) {
+        const items = await res.json()
+        if (Array.isArray(items) && items.length > 0) {
+          setData(items)
+        }
+      }
+    } catch {
+      // Supabase not configured, use fallbacks
+    } finally {
+      setLoading(false)
+    }
+  }, [table])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return { data, loading }
+}
 
 /* ── Login Form ── */
 
@@ -271,7 +248,11 @@ function Dashboard() {
   const { logout } = useAuth()
   const router = useRouter()
 
-  const coursesStarted = courses.filter((c) => c.progress > 0).length
+  const { data: courses } = useContent("courses", fallbackCourses)
+  const { data: sheetMusic } = useContent("sheet_music", fallbackSheetMusic)
+  const { data: bonusMaterial } = useContent("bonus_material", fallbackBonusMaterial)
+  const { data: behindTheScenes } = useContent("bts_clips", fallbackBehindTheScenes)
+  const { data: tourDates } = useContent("tour_dates", fallbackTourDates)
 
   function handleLogout() {
     logout()
@@ -303,8 +284,8 @@ function Dashboard() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
           <StatCard
-            label="Courses in Progress"
-            value={`${coursesStarted} of ${courses.length}`}
+            label="Total Courses"
+            value={`${courses.length}`}
             icon={BookOpen}
           />
           <StatCard
@@ -364,20 +345,22 @@ function Dashboard() {
             <div className="flex flex-col gap-4">
               {courses.map((course, index) => (
                 <div
-                  key={course.title}
+                  key={course.id || course.title}
                   className="border border-white/10 bg-white/[0.03] overflow-hidden hover:bg-white/[0.06] transition-colors group"
                 >
                   <div className="flex flex-col lg:flex-row">
                     {/* Image */}
-                    <div className="relative w-full lg:w-56 aspect-video lg:aspect-auto shrink-0 overflow-hidden">
-                      <Image
-                        src={course.image}
-                        alt={course.title}
-                        fill
-                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                        {...(index === 0 ? { priority: true, loading: "eager" as const } : {})}
-                      />
-                    </div>
+                    {(course.image_url) && (
+                      <div className="relative w-full lg:w-56 aspect-video lg:aspect-auto shrink-0 overflow-hidden">
+                        <Image
+                          src={course.image_url}
+                          alt={course.title}
+                          fill
+                          className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                          {...(index === 0 ? { priority: true, loading: "eager" as const } : {})}
+                        />
+                      </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 p-6 lg:p-8 flex flex-col justify-between gap-4">
@@ -392,7 +375,7 @@ function Dashboard() {
                         </p>
                         <div className="flex gap-4 mt-3">
                           <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
-                            {course.lessons}
+                            {course.lessons_count}
                           </span>
                           <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
                             {course.duration}
@@ -400,22 +383,10 @@ function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex-1">
-                          <ProgressBar value={course.progress} />
-                        </div>
+                      <div className="flex items-center gap-4">
                         <button className="flex items-center gap-2 bg-white text-black font-sans text-xs uppercase tracking-[0.15em] font-bold px-5 py-2.5 hover:bg-white/90 transition-colors shrink-0">
-                          {course.progress > 0 ? (
-                            <>
-                              Continue
-                              <ChevronRight className="size-3.5" />
-                            </>
-                          ) : (
-                            <>
-                              <Play className="size-3" />
-                              Start
-                            </>
-                          )}
+                          <Play className="size-3" />
+                          Start Course
                         </button>
                       </div>
                     </div>
@@ -430,7 +401,7 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {sheetMusic.map((piece) => (
                 <div
-                  key={piece.title}
+                  key={piece.id || piece.title}
                   className="border border-white/10 bg-white/[0.03] p-5 flex items-start justify-between gap-4 hover:bg-white/[0.06] transition-colors"
                 >
                   <div className="flex gap-3 min-w-0">
@@ -447,23 +418,34 @@ function Dashboard() {
                           {piece.pages} pages
                         </span>
                         <span
-                          className={`text-xs font-sans ${
-                            piece.difficulty === "Advanced"
-                              ? "text-white/70"
-                              : piece.difficulty === "Intermediate"
-                                ? "text-white/50"
-                                : "text-white/35"
-                          }`}
+                          className={`text-xs font-sans ${piece.difficulty === "Advanced"
+                            ? "text-white/70"
+                            : piece.difficulty === "Intermediate"
+                              ? "text-white/50"
+                              : "text-white/35"
+                            }`}
                         >
                           {piece.difficulty}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <button className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors shrink-0 border border-white/15 px-3 py-1.5 hover:border-white/30">
-                    <Download className="size-3" />
-                    PDF
-                  </button>
+                  {piece.pdf_url ? (
+                    <a
+                      href={piece.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors shrink-0 border border-white/15 px-3 py-1.5 hover:border-white/30"
+                    >
+                      <Download className="size-3" />
+                      PDF
+                    </a>
+                  ) : (
+                    <button className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-sans uppercase tracking-widest transition-colors shrink-0 border border-white/15 px-3 py-1.5 hover:border-white/30">
+                      <Download className="size-3" />
+                      PDF
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -474,7 +456,7 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bonusMaterial.map((item) => (
                 <div
-                  key={item.title}
+                  key={item.id || item.title}
                   className="border border-white/10 bg-white/[0.03] p-6 flex flex-col hover:bg-white/[0.06] transition-colors"
                 >
                   <span className="text-[10px] uppercase tracking-widest text-white/40 font-sans mb-3">
@@ -499,7 +481,7 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {behindTheScenes.map((clip) => (
                 <div
-                  key={clip.title}
+                  key={clip.id || clip.title}
                   className="border border-white/10 bg-white/[0.03] p-6 flex flex-col hover:bg-white/[0.06] transition-colors group"
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -526,7 +508,7 @@ function Dashboard() {
             <div className="flex flex-col divide-y divide-white/10 border-t border-b border-white/10">
               {tourDates.map((show) => (
                 <div
-                  key={`${show.date}-${show.city}`}
+                  key={show.id || `${show.date}-${show.city}`}
                   className="flex flex-col sm:flex-row sm:items-center justify-between py-5 gap-3"
                 >
                   <div className="flex items-center gap-3 text-white/70 font-sans text-sm">
@@ -543,13 +525,12 @@ function Dashboard() {
                   </div>
 
                   <span
-                    className={`text-xs uppercase tracking-widest font-sans px-3 py-1 border shrink-0 ${
-                      show.status === "Sold Out"
-                        ? "border-white/10 text-white/30"
-                        : show.status === "Coming Soon"
-                          ? "border-white/15 text-white/50"
-                          : "border-white/30 text-white"
-                    }`}
+                    className={`text-xs uppercase tracking-widest font-sans px-3 py-1 border shrink-0 ${show.status === "Sold Out"
+                      ? "border-white/10 text-white/30"
+                      : show.status === "Coming Soon"
+                        ? "border-white/15 text-white/50"
+                        : "border-white/30 text-white"
+                      }`}
                   >
                     {show.status}
                   </span>

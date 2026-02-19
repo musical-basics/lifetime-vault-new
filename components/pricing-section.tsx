@@ -1,4 +1,7 @@
-import { Check, ShieldCheck, ArrowRight } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { Check, ShieldCheck, ArrowRight, Loader2 } from "lucide-react"
 import Image from "next/image"
 
 const bullets = [
@@ -10,6 +13,21 @@ const bullets = [
 ]
 
 export function PricingSection() {
+  const [loading, setLoading] = useState(false)
+
+  async function handleCheckout() {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch {
+      setLoading(false)
+    }
+  }
+
   return (
     <section id="pricing" className="bg-[#050505] text-white py-32 px-6 relative border-t border-white/5">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(212,175,55,0.05)_0%,transparent_50%)] pointer-events-none" />
@@ -82,16 +100,19 @@ export function PricingSection() {
               ))}
             </ul>
 
-            {/* 🔥 FIXED LINK HERE - Replace /checkout with Stripe link */}
-            <a
-              href="/checkout"
-              className="group relative flex items-center justify-center w-full bg-white text-black font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold px-8 py-5 rounded-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.98]"
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className="group relative flex items-center justify-center w-full bg-white text-black font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold px-8 py-5 rounded-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:opacity-50"
             >
               <span className="relative z-10 flex items-center gap-2">
-                Get Instant Access
-                <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                {loading ? (
+                  <><Loader2 className="size-4 animate-spin" /> Processing...</>
+                ) : (
+                  <>Get Instant Access <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" /></>
+                )}
               </span>
-            </a>
+            </button>
           </div>
         </div>
 
