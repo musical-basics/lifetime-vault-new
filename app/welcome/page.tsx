@@ -4,11 +4,14 @@ import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Loader2, CheckCircle2 } from "lucide-react"
 
+type Mode = "register" | "login"
+
 export default function WelcomePage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const sessionId = searchParams.get("session_id")
 
+    const [mode, setMode] = useState<Mode>("register")
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -23,7 +26,7 @@ export default function WelcomePage() {
         }
     }, [sessionId, router])
 
-    async function handleSubmit(e: React.FormEvent) {
+    async function handleRegister(e: React.FormEvent) {
         e.preventDefault()
         setError("")
 
@@ -31,7 +34,6 @@ export default function WelcomePage() {
             setError("Password must be at least 6 characters")
             return
         }
-
         if (password !== confirm) {
             setError("Passwords do not match")
             return
@@ -42,24 +44,51 @@ export default function WelcomePage() {
         const res = await fetch("/api/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email: email.toLowerCase().trim(), password, session_id: sessionId }),
+            body: JSON.stringify({
+                name,
+                email: email.toLowerCase().trim(),
+                password,
+                session_id: sessionId,
+            }),
         })
 
         const data = await res.json()
-
         if (!res.ok) {
             setError(data.error || "Registration failed")
             setLoading(false)
             return
         }
 
-        // Store user and redirect to login/dashboard
         sessionStorage.setItem("vault_user", JSON.stringify(data.user))
         setSuccess(true)
+        setTimeout(() => router.push("/login"), 2000)
+    }
 
-        setTimeout(() => {
-            router.push("/login")
-        }, 2000)
+    async function handleLogin(e: React.FormEvent) {
+        e.preventDefault()
+        setError("")
+        setLoading(true)
+
+        const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: email.toLowerCase().trim(),
+                password,
+                session_id: sessionId,
+            }),
+        })
+
+        const data = await res.json()
+        if (!res.ok) {
+            setError(data.error || "Login failed")
+            setLoading(false)
+            return
+        }
+
+        sessionStorage.setItem("vault_user", JSON.stringify(data.user))
+        setSuccess(true)
+        setTimeout(() => router.push("/login"), 2000)
     }
 
     if (!sessionId) {
@@ -73,7 +102,9 @@ export default function WelcomePage() {
                     <CheckCircle2 className="size-16 text-green-400 mx-auto mb-6" strokeWidth={1.5} />
                     <h1 className="font-serif text-4xl tracking-tight mb-3">Welcome to the Vault</h1>
                     <p className="font-sans text-white/50 text-sm">
-                        Your account has been created. Redirecting to your dashboard...
+                        {mode === "register"
+                            ? "Your account has been created. Redirecting to your dashboard..."
+                            : "Payment linked! Redirecting to your dashboard..."}
                     </p>
                 </div>
             </main>
@@ -83,106 +114,162 @@ export default function WelcomePage() {
     return (
         <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center py-16 px-6">
             <div className="w-full max-w-md">
-                {/* Header */}
-                <div className="text-center mb-10">
+                {/* Payment Confirmed Badge */}
+                <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 font-sans text-[10px] uppercase tracking-[0.3em] px-4 py-1.5 mb-6">
                         <CheckCircle2 className="size-3" />
                         Payment Confirmed
                     </div>
                     <h1 className="font-serif text-3xl md:text-4xl tracking-tight mb-3">
-                        Create Your Account
+                        {mode === "register" ? "Create Your Account" : "Link Your Account"}
                     </h1>
                     <p className="font-sans text-white/50 text-sm leading-relaxed">
-                        Set up your login to access the Lifetime Vault.
+                        {mode === "register"
+                            ? "Set up your login to access the Lifetime Vault."
+                            : "Sign in to link this purchase to your existing account."}
                     </p>
+                </div>
+
+                {/* Mode Toggle */}
+                <div className="flex mb-6 border border-white/10">
+                    <button
+                        type="button"
+                        onClick={() => { setMode("register"); setError("") }}
+                        className={`flex-1 py-3 text-xs uppercase tracking-widest font-sans font-bold transition-colors ${mode === "register"
+                                ? "bg-white text-black"
+                                : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                    >
+                        New Account
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setMode("login"); setError("") }}
+                        className={`flex-1 py-3 text-xs uppercase tracking-widest font-sans font-bold transition-colors ${mode === "login"
+                                ? "bg-white text-black"
+                                : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                    >
+                        Existing Account
+                    </button>
                 </div>
 
                 {/* Form */}
                 <div className="border border-white/10 bg-white/[0.03]">
-                    <form onSubmit={handleSubmit} className="p-8 flex flex-col gap-5">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] uppercase tracking-widest text-white/50 font-sans">
-                                Full Name
-                            </label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Your full name"
-                                required
-                                className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
-                            />
-                        </div>
+                    {mode === "register" ? (
+                        <form onSubmit={handleRegister} className="p-8 flex flex-col gap-5">
+                            <Field label="Full Name">
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Your full name"
+                                    required
+                                    className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            </Field>
+                            <Field label="Email Address">
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="you@example.com"
+                                    required
+                                    className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            </Field>
+                            <Field label="Password">
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="At least 6 characters"
+                                    required
+                                    className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            </Field>
+                            <Field label="Confirm Password">
+                                <input
+                                    type="password"
+                                    value={confirm}
+                                    onChange={(e) => setConfirm(e.target.value)}
+                                    placeholder="Re-enter password"
+                                    required
+                                    className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            </Field>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] uppercase tracking-widest text-white/50 font-sans">
-                                Email Address
-                            </label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                required
-                                className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
-                            />
-                        </div>
+                            {error && <ErrorMessage message={error} />}
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] uppercase tracking-widest text-white/50 font-sans">
-                                Password
-                            </label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="At least 6 characters"
-                                required
-                                className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
-                            />
-                        </div>
+                            <SubmitButton loading={loading} text="Create My Account" loadingText="Creating Account..." />
+                        </form>
+                    ) : (
+                        <form onSubmit={handleLogin} className="p-8 flex flex-col gap-5">
+                            <Field label="Email Address">
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="you@example.com"
+                                    required
+                                    className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            </Field>
+                            <Field label="Password">
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Your password"
+                                    required
+                                    className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
+                                />
+                            </Field>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] uppercase tracking-widest text-white/50 font-sans">
-                                Confirm Password
-                            </label>
-                            <input
-                                type="password"
-                                value={confirm}
-                                onChange={(e) => setConfirm(e.target.value)}
-                                placeholder="Re-enter password"
-                                required
-                                className="h-12 w-full border border-white/15 bg-white/5 px-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-white/40 transition-colors font-sans"
-                            />
-                        </div>
+                            {error && <ErrorMessage message={error} />}
 
-                        {error && (
-                            <p className="text-red-400 text-xs font-sans bg-red-400/5 border border-red-400/10 px-4 py-2">
-                                {error}
-                            </p>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <><Loader2 className="size-4 animate-spin" /> Creating Account...</>
-                            ) : (
-                                "Create My Account"
-                            )}
-                        </button>
-                    </form>
+                            <SubmitButton loading={loading} text="Sign In & Link Purchase" loadingText="Signing In..." />
+                        </form>
+                    )}
                 </div>
-
-                <p className="text-center text-white/30 text-xs font-sans mt-6">
-                    Already have an account?{" "}
-                    <a href="/login" className="text-white/60 hover:text-white underline transition-colors">
-                        Sign in
-                    </a>
-                </p>
             </div>
         </main>
+    )
+}
+
+/* ── Shared sub-components ── */
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase tracking-widest text-white/50 font-sans">
+                {label}
+            </label>
+            {children}
+        </div>
+    )
+}
+
+function ErrorMessage({ message }: { message: string }) {
+    return (
+        <p className="text-red-400 text-xs font-sans bg-red-400/5 border border-red-400/10 px-4 py-2">
+            {message}
+        </p>
+    )
+}
+
+function SubmitButton({ loading, text, loadingText }: { loading: boolean; text: string; loadingText: string }) {
+    return (
+        <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 w-full bg-white text-black font-sans text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+            {loading ? (
+                <><Loader2 className="size-4 animate-spin" /> {loadingText}</>
+            ) : (
+                text
+            )}
+        </button>
     )
 }
