@@ -1,15 +1,15 @@
 import { Lock } from "lucide-react"
-import Image from "next/image"
 
 export function HeroSection() {
   return (
     <section className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-32 text-center text-white overflow-hidden">
-      <Image
-        src="/images/pianist-portrait-bw.jpg"
-        alt=""
-        fill
-        priority
-        className="object-cover"
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        src="https://pub-5362e8f7fec4465dbabad7d613891569.r2.dev/Version%20for%20MusicalBio%20copy.mp4"
       />
       <div className="absolute inset-0 bg-black/75" />
 
