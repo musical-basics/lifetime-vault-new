@@ -74,7 +74,7 @@ export function PricingSection() {
 
           <a
             href="#"
-            className="group block w-full bg-gradient-to-r from-[var(--gold-dim)] via-[var(--gold)] to-[var(--gold-dim)] text-white text-center font-sans text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.35em] font-bold px-8 py-5 rounded-none hover:shadow-[0_0_50px_rgba(201,168,76,0.25)] transition-all duration-500 btn-shimmer"
+            className="group block w-full bg-gradient-to-r from-[#a08339] via-[#c9a84c] to-[#a08339] text-white text-center font-sans text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.35em] font-bold px-8 py-5 rounded-none hover:shadow-[0_0_50px_rgba(201,168,76,0.4)] transition-all duration-500 btn-shimmer"
           >
             Get Instant Access
           </a>

@@ -42,7 +42,7 @@ export function HeroSection() {
         {/* CTA Button */}
         <a
           href="#pricing"
-          className="group mt-12 relative inline-flex items-center gap-3 bg-gradient-to-r from-[var(--gold-dim)] via-[var(--gold)] to-[var(--gold-dim)] text-white font-sans text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.35em] font-bold px-10 py-4 rounded-none hover:shadow-[0_0_40px_rgba(201,168,76,0.3)] transition-all duration-500 btn-shimmer"
+          className="group mt-12 relative inline-flex items-center gap-3 bg-gradient-to-r from-[#a08339] via-[#c9a84c] to-[#a08339] text-white font-sans text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.35em] font-bold px-10 py-4 rounded-none hover:shadow-[0_0_40px_rgba(201,168,76,0.4)] transition-all duration-500 btn-shimmer"
         >
           {"UNLOCK THE VAULT \u2014 $147"}
         </a>
