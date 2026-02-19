@@ -1,64 +1,60 @@
-import { Lock, ChevronDown } from "lucide-react"
+import { Lock, ArrowRight } from "lucide-react"
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32 text-center text-white overflow-hidden">
-      {/* Background video */}
+    <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 py-32 text-center text-white overflow-hidden">
+      {/* Background Video with Cinematic Gradients */}
       <video
         autoPlay
         muted
         loop
         playsInline
-        className="absolute inset-0 w-full h-full object-cover scale-105"
+        className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity scale-105"
         src="https://pub-5362e8f7fec4465dbabad7d613891569.r2.dev/Version%20for%20MusicalBio%20copy.mp4"
       />
+      {/* Luxury vignette overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] opacity-90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-transparent to-[#050505]" />
 
-      {/* Multi-layer overlay for cinematic depth */}
-      <div className="absolute inset-0 bg-black/70" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/40" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505]" />
+      <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mt-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#D4AF37]" />
+          <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] font-medium text-[#D4AF37]">
+            A Farewell to the Early Days
+          </p>
+          <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#D4AF37]" />
+        </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto">
-        {/* Decorative line */}
-        <div className="w-px h-16 bg-gradient-to-b from-transparent via-[var(--gold)]/50 to-[var(--gold)] mb-8" />
-
-        <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.4em] font-medium text-[var(--gold)] mb-8">
-          A Farewell to the Early Days
-        </p>
-
-        <h1 className="font-serif tracking-tight leading-[0.95] text-5xl md:text-7xl lg:text-8xl">
+        <h1 className="font-serif tracking-tight leading-[1.05] text-5xl md:text-6xl lg:text-7xl text-balance drop-shadow-2xl">
           The Musical Basics
           <br />
-          <span className="text-gold-gradient">Lifetime Vault.</span>
+          <span className="italic font-light bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
+            Lifetime Vault.
+          </span>
         </h1>
 
-        <p className="font-sans text-white/50 max-w-xl mx-auto mt-8 text-base md:text-lg leading-relaxed text-pretty">
-          Before my teaching academy graduates to premium retail pricing, get
+        <p className="font-sans text-white/60 max-w-2xl mx-auto mt-8 text-lg md:text-xl leading-relaxed text-pretty font-light">
+          Before my teaching academy graduates to premium retail pricing, secure
           lifetime access to every course and piece of sheet music I{"'"}ve ever
-          created for one final price.
+          created for one final, exclusive price.
         </p>
 
-        {/* CTA Button */}
-        <a
-          href="#pricing"
-          className="group mt-12 relative inline-flex items-center gap-3 bg-gradient-to-r from-[#a08339] via-[#c9a84c] to-[#a08339] text-white font-sans text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.35em] font-bold px-10 py-4 rounded-none hover:shadow-[0_0_40px_rgba(201,168,76,0.4)] transition-all duration-500 btn-shimmer"
-        >
-          {"UNLOCK THE VAULT \u2014 $147"}
-        </a>
+        {/* Premium Luxury Button */}
+        <div className="mt-12 relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#D4AF37]/0 via-[#D4AF37]/40 to-[#D4AF37]/0 blur-md opacity-0 group-hover:opacity-100 transition duration-700" />
+          <a
+            href="#pricing"
+            className="relative flex items-center justify-center gap-4 bg-white/5 backdrop-blur-md border border-white/20 text-white font-sans text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold px-10 py-5 hover:bg-white hover:text-black transition-all duration-500 ease-out"
+          >
+            Unlock The Vault &mdash; $147
+            <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
+          </a>
+        </div>
 
-        <p className="mt-6 flex items-center gap-2 text-white/30 text-sm font-sans">
+        <div className="mt-10 flex items-center justify-center gap-3 text-white/40 text-[10px] md:text-xs font-sans tracking-wide">
           <Lock className="size-3.5" />
-          <span>
-            Secure checkout via Stripe. One-time payment. Yours forever.
-          </span>
-        </p>
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-float">
-        <span className="text-white/20 text-[10px] uppercase tracking-[0.3em] font-sans">Scroll</span>
-        <ChevronDown className="size-4 text-white/20" />
+          <span>Secure checkout via Stripe &bull; One-time payment &bull; Yours forever</span>
+        </div>
       </div>
     </section>
   )

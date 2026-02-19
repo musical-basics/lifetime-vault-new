@@ -2,41 +2,38 @@ import Image from "next/image"
 
 export function LetterSection() {
   return (
-    <section className="relative bg-[#faf8f5] text-[#1a1a1a] py-28 md:py-36 px-6 overflow-hidden">
-      {/* Subtle texture overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+    <section className="bg-[#050505] text-white py-32 px-6 border-t border-white/5 relative overflow-hidden">
+      {/* Subtle background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="grid md:grid-cols-2 gap-16 max-w-6xl mx-auto items-center relative">
-        {/* Image with decorative frame */}
-        <div className="relative">
-          <div className="absolute -inset-3 border border-[var(--gold)]/20" />
-          <div className="absolute -inset-1.5 border border-[var(--gold)]/10" />
-          <div className="relative aspect-[3/4] w-full overflow-hidden">
+      <div className="grid lg:grid-cols-[1fr_1.2fr] gap-16 lg:gap-24 max-w-6xl mx-auto items-center relative z-10">
+
+        {/* Editorial Image Framing */}
+        <div className="relative w-full aspect-[3/4] p-3 sm:p-5 border border-white/10 group">
+          <div className="relative w-full h-full overflow-hidden bg-[#0A0A0A]">
             <Image
               src="/images/early-days.jpg"
-              alt="Lionel Yu at the piano"
+              alt="Lionel Yu Piano keys early days"
               fill
-              className="object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+              className="object-cover grayscale contrast-125 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1.5s] ease-out"
               priority
               loading="eager"
             />
+            {/* Inner shadow overlay for depth */}
+            <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none" />
           </div>
         </div>
 
-        <div>
-          {/* Gold decorative element */}
-          <div className="w-12 h-px bg-[var(--gold)] mb-8" />
-
-          <h2 className="font-serif text-3xl lg:text-4xl xl:text-5xl tracking-tight leading-[1.1] mb-10 text-balance">
-            An end to the {"\u201C"}early days{"\u201D"}.
+        <div className="flex flex-col justify-center">
+          <h2 className="font-serif text-4xl lg:text-5xl tracking-tight leading-[1.1] mb-12 text-balance">
+            An end to the <span className="italic text-[#D4AF37]">{"\u201C"}early days{"\u201D"}</span>.
           </h2>
 
-          <div className="space-y-5 text-base lg:text-lg font-sans text-[#1a1a1a]/70 leading-relaxed">
-            <p>Hi everyone, it{"'"}s Lionel.</p>
-
+          <div className="space-y-8 text-lg font-sans text-white/70 leading-relaxed font-light">
             <p>
-              For the last two years, I{"'"}ve been pouring my life savings into
-              building the DreamPlay One, a professional piano keyboard
+              <span className="float-left text-6xl font-serif leading-[0.8] pr-3 text-white">H</span>
+              i everyone, it{"'"}s Lionel. For the last two years, I{"'"}ve been pouring my life savings into
+              building the DreamPlay One{"\u2014"}a professional piano keyboard
               designed for hands that don{"'"}t fit the standard size.
             </p>
 
@@ -47,24 +44,26 @@ export function LetterSection() {
             </p>
 
             <p>
-              Starting next Monday, my private lessons are moving to $80, and
-              my Lifetime Piano Course is graduating from its beta price to
-              $320.
+              Starting next Monday, my private lessons are moving to <strong className="text-white font-normal">$80</strong>, and
+              my Lifetime Piano Course is graduating from its beta price to <strong className="text-white font-normal">$320</strong>.
             </p>
 
             <p>
-              But to help fund the final manufacturing costs of the piano,
-              and to say thank you to the people who have supported my
-              music for years, I am doing something I{"'"}ve never done
+              But to help fund the final manufacturing costs of the piano
+              {"\u2014"}and to say thank you to the people who have supported my
+              music for years{"\u2014"}I am doing something I{"'"}ve never done
               before. I am opening the Lifetime Vault.
             </p>
           </div>
 
-          <div className="mt-10 flex items-center gap-4">
-            <div className="w-8 h-px bg-[var(--gold)]/50" />
-            <p className="font-serif italic text-[#1a1a1a]/50 text-lg">
-              Lionel Yu
-            </p>
+          <div className="mt-12 pt-8 border-t border-white/10 flex items-center gap-6">
+            <div className="size-14 rounded-full border border-white/20 overflow-hidden relative shrink-0">
+              <Image src="/images/pianist-bw.jpg" alt="Lionel" fill className="object-cover grayscale" />
+            </div>
+            <div>
+              <p className="font-serif italic text-white text-xl">Lionel Yu</p>
+              <p className="text-[10px] font-sans tracking-[0.2em] text-[#D4AF37] uppercase mt-1">Founder & Pianist</p>
+            </div>
           </div>
         </div>
       </div>
