@@ -5,7 +5,7 @@ export function HeroSection() {
   return (
     <section className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-32 text-center text-white overflow-hidden">
       <Image
-        src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=2070&auto=format&fit=crop"
+        src="/images/pianist-portrait-bw.jpg"
         alt=""
         fill
         priority

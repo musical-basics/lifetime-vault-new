@@ -16,7 +16,7 @@ export function PricingSection() {
       <div className="grid md:grid-cols-2 max-w-6xl mx-auto items-center gap-12">
         <div className="relative aspect-[4/3] w-full overflow-hidden">
           <Image
-            src="https://images.unsplash.com/photo-1571974599782-87624638275e?q=80&w=2070&auto=format&fit=crop"
+            src="/images/piano-hands-bw.jpg"
             alt="Pianist hands on piano keys"
             fill
             className="object-cover grayscale"
