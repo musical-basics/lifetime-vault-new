@@ -9,11 +9,11 @@ export function HeroSection() {
         muted
         loop
         playsInline
-        className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity scale-105"
+        className="absolute inset-0 w-full h-full object-cover opacity-65 mix-blend-luminosity scale-105"
         src="https://pub-5362e8f7fec4465dbabad7d613891569.r2.dev/Version%20for%20MusicalBio%20copy.mp4"
       />
       {/* Luxury vignette overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] opacity-90" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] opacity-75" />
       <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-transparent to-[#050505]" />
 
       <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mt-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">

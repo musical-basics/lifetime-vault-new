@@ -47,10 +47,10 @@ export function VaultContents() {
                   src={row.image}
                   alt={row.imageAlt}
                   fill
-                  className="object-cover grayscale opacity-80 transition-all duration-[1.5s] ease-out group-hover:scale-105 group-hover:opacity-100 group-hover:grayscale-0"
+                  className="object-cover grayscale opacity-90 transition-all duration-[1.5s] ease-out group-hover:scale-105 group-hover:opacity-100 group-hover:grayscale-0"
                   {...(i === 0 ? { priority: true, loading: "eager" as const } : {})}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-50 transition-opacity duration-700 group-hover:opacity-20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-35 transition-opacity duration-700 group-hover:opacity-20" />
               </div>
             )
 

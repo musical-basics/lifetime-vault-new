@@ -134,7 +134,7 @@ function LoginForm() {
           src="/images/early-days.jpg"
           alt=""
           fill
-          className="object-cover opacity-20 grayscale"
+          className="object-cover opacity-30 grayscale"
           priority
           loading="eager"
         />

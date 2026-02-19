@@ -1,12 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Loader2, CheckCircle2 } from "lucide-react"
 
 type Mode = "register" | "login"
 
-export default function WelcomePage() {
+export default function WelcomePageWrapper() {
+    return (
+        <Suspense fallback={<main className="min-h-screen bg-[#050505]" />}>
+            <WelcomePage />
+        </Suspense>
+    )
+}
+
+function WelcomePage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const sessionId = searchParams.get("session_id")
@@ -136,8 +144,8 @@ export default function WelcomePage() {
                         type="button"
                         onClick={() => { setMode("register"); setError("") }}
                         className={`flex-1 py-3 text-xs uppercase tracking-widest font-sans font-bold transition-colors ${mode === "register"
-                                ? "bg-white text-black"
-                                : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                            ? "bg-white text-black"
+                            : "text-white/50 hover:text-white hover:bg-white/[0.06]"
                             }`}
                     >
                         New Account
@@ -146,8 +154,8 @@ export default function WelcomePage() {
                         type="button"
                         onClick={() => { setMode("login"); setError("") }}
                         className={`flex-1 py-3 text-xs uppercase tracking-widest font-sans font-bold transition-colors ${mode === "login"
-                                ? "bg-white text-black"
-                                : "text-white/50 hover:text-white hover:bg-white/[0.06]"
+                            ? "bg-white text-black"
+                            : "text-white/50 hover:text-white hover:bg-white/[0.06]"
                             }`}
                     >
                         Existing Account

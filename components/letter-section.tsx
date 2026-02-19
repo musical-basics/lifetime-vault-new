@@ -15,7 +15,7 @@ export function LetterSection() {
               src="/images/early-days.jpg"
               alt="Lionel Yu Piano keys early days"
               fill
-              className="object-cover grayscale contrast-125 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1.5s] ease-out"
+              className="object-cover grayscale contrast-125 opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-[1.5s] ease-out"
               priority
               loading="eager"
             />

@@ -53,7 +53,7 @@ export function PricingSection() {
               src="/images/piano-hands-bw.jpg"
               alt="Pianist hands on piano keys"
               fill
-              className="object-cover grayscale opacity-50 mix-blend-lighten group-hover:scale-105 group-hover:opacity-70 transition-all duration-[2s] ease-out"
+              className="object-cover grayscale opacity-65 mix-blend-lighten group-hover:scale-105 group-hover:opacity-80 transition-all duration-[2s] ease-out"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0A0A0A]" />
             <div className="absolute bottom-12 left-12 flex items-start gap-4">
